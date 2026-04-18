@@ -39,11 +39,12 @@ services:
         value: 8000
 
   # 3. Jobify Client (Static Site)
-  - type: static
+  - type: web
     name: jobify-client
+    env: static
     rootDir: client
     buildCommand: npm install && npm run build
-    publishPath: build
+    staticPublishPath: build
     envVars:
       - key: REACT_APP_API_URL
         fromService:
