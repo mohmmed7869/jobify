@@ -10,7 +10,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import axios from 'axios';
 
 // Ensure all API calls route to the Backend URL (useful for Production)
-axios.defaults.baseURL = process.env.REACT_APP_API_URL || '';
+axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'https://jobify-backend-bnbg.onrender.com';
 
 // إنشاء عميل React Query
 const queryClient = new QueryClient({

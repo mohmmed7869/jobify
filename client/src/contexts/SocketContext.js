@@ -11,7 +11,7 @@ export const SocketProvider = ({ children }) => {
 
   useEffect(() => {
     if (user) {
-      const backendUrl = process.env.REACT_APP_SOCKET_URL || window.location.origin;
+      const backendUrl = process.env.REACT_APP_SOCKET_URL || process.env.REACT_APP_API_URL || 'https://jobify-backend-bnbg.onrender.com';
       const newSocket = io(backendUrl, {
         query: { userId: user._id }
       });
