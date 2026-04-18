@@ -71,21 +71,21 @@ const Navbar = () => {
                 <span className="text-white font-black text-xl md:text-2xl">ت</span>
               </div>
               <div className="flex flex-col">
-                <span className="text-lg md:text-xl font-black text-themed-text tracking-tight leading-none">منصة التوظيف</span>
+                <span className="text-lg md:text-xl font-black text-themed-text tracking-tight leading-none">Jobify</span>
                 <span className="text-[8px] md:text-[10px] text-primary-600 font-black tracking-widest uppercase mt-1">الجيل الثالث الذكي</span>
               </div>
             </Link>
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-2">
-            <div className="flex items-center gap-1 ml-8">
+          <div className="hidden md:flex items-center gap-4 lg:gap-8">
+            <div className="flex items-center gap-2">
               <NavLink to="/feed" active={isActive('/feed')} label={t('navbar.feed')} />
               <NavLink to="/jobs" active={isActive('/jobs')} label={t('navbar.jobs')} />
               {user && <NavLink to={getDashboardLink()} active={location.pathname.includes('dashboard')} label={t('navbar.dashboard')} />}
             </div>
 
-            <div className="flex items-center gap-2 px-4 border-r border-primary-100/20">
+            <div className="flex items-center gap-2 px-4 border-r border-primary-100/20 h-8">
               {/* Language Switcher */}
               <div className="relative">
                 <button
@@ -140,7 +140,7 @@ const Navbar = () => {
             </div>
             
             {user ? (
-              <div className="flex items-center gap-4 border-r border-primary-100/20 pr-6 mr-4">
+              <div className="flex items-center gap-4 border-r border-primary-100/20 px-4 h-8">
                 <IconButton to="/chat" icon={<FiMessageCircle />} badge={3} />
                 <NotificationDropdown socket={socket} />
                 

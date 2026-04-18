@@ -30,14 +30,14 @@
     "createdAt": "2025-07-18T09:00:00Z"
   },
   {
-    "name": "هشام عبداللطيف محمد المجمر",
-    "email": "hshamalmjmr53@gmail.com",
-    "phone": "773988932",
-    "password": "Hishamalmojamer@2030",
+    "name": "محمد علي",
+    "email": "mohom77393@gmail.com",
+    "phone": "783332292",
+    "password": "Mohammedalmojamer@2030",
     "userType": "company",
     "address": "صنعاء شارع حدة",
     "description": "شركة برمجيات متخصصة في الذكاء الاصطناعي",
-    "website": "https://hshamalmjmr.com",
+    "website": "https://mohammedalmjmr.com",
     "industry": "تقنية المعلومات",
     "size": "11-50 موظف",
     "verified": true,
@@ -48,7 +48,7 @@
   },
   {
     "companyName": "سمارت يمن للحلول الذكية",
-    "email": "hshamalmjmr53@gmail.com",
+    "email": "mohom77393@gmail.com",
     "phone": "0779254189",
     "industry": "التجارة والمبيعات",
     "size": "51-200 موظف",

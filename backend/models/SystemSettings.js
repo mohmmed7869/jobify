@@ -32,11 +32,11 @@ const SystemSettingsSchema = new mongoose.Schema({
   },
   supportEmail: {
     type: String,
-    default: 'support@hisham-platform.com'
+    default: 'mohom77393@gmail.com'
   },
   supportPhone: {
     type: String,
-    default: '773988932'
+    default: '783332292'
   },
   updatedBy: {
     type: mongoose.Schema.Types.ObjectId,

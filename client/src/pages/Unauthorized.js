@@ -47,8 +47,8 @@ const Unauthorized = () => {
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 text-center">Security Protocol Enabled by Strategic Engineering Team</p>
             <div className="flex items-center gap-2">
               <div className="h-px w-8 bg-slate-200"></div>
-              <p className="text-slate-900 font-black text-xs">بإشراف المهندس هشام المجمر - فريق Smart Solution</p>
-            <p className="text-primary-600 font-bold text-[10px] mt-1">hshamalmjmr53@gmail.com</p>
+              <p className="text-slate-900 font-black text-xs">بإشراف المهندس محمد علي - فريق Smart Solution</p>
+            <p className="text-primary-600 font-bold text-[10px] mt-1">mohom77393@gmail.com</p>
               <div className="h-px w-8 bg-slate-200"></div>
             </div>
           </div>

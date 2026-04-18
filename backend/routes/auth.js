@@ -202,7 +202,7 @@ router.post('/register', upload.fields([
     const message = `
       مرحباً ${name}،
       
-      شكراً لتسجيلك في منصة التوظيف الذكية!
+      شكراً لتسجيلك في Jobify!
       
       يرجى النقر على الرابط التالي للتحقق من حسابك:
       ${verifyUrl}
@@ -213,7 +213,7 @@ router.post('/register', upload.fields([
     try {
       await sendEmail({
         email: user.email,
-        subject: 'تحقق من حسابك - منصة التوظيف الذكية',
+        subject: 'تحقق من حسابك - Jobify',
         message
       });
 

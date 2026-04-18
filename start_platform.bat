@@ -4,7 +4,7 @@ color 0B
 
 echo ======================================================
 echo    Smart Recruitment Platform - Full System Startup
-echo    Developed by: Eng. Hesham Al-Majmar (773988932)
+echo    Developed by: Eng. Mohammed Ali (783332292)
 echo ======================================================
 echo.
 
@@ -29,6 +29,6 @@ echo    - AI Service: http://localhost:8000
 echo    - Backend: http://localhost:5000
 echo    - Frontend: http://localhost:3000
 echo.
-echo    Developer: Eng. Hesham Al-Majmar (Yemen - Sana'a)
+echo    Developer: Eng. Mohammed Ali (Yemen - Sana'a)
 echo ======================================================
 pause

@@ -188,7 +188,7 @@ const ThemeShowcase = () => {
       </FormalCard>
 
       <div className="mt-12 text-center text-slate-600">
-        <p className="text-sm">© 2026 منصة التوظيف الذكية - جميع الحقوق محفوظة</p>
+        <p className="text-sm">© 2026 Jobify - جميع الحقوق محفوظة</p>
       </div>
     </div>
   );

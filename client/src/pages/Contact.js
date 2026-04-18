@@ -68,7 +68,7 @@ const Contact = () => {
             <ContactInfoCard 
               icon={<FiPhone size={24} />} 
               title="رقم التواصل" 
-              content="+967 773988932" 
+              content="+967 783332292" 
               subContent="متاح من 9 صباحاً حتى 5 مساءً"
               dir="ltr"
             />

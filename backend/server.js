@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Smart Recruitment Platform Server
- * منصة التوظيف الذكية - النسخة 3.0
+ * Jobify Server
+ * Jobify - النسخة 3.0
  */
 
 const express = require('express');
@@ -27,7 +27,7 @@ require('./config/passport')(passport);
 const numCPUs = os.cpus().length;
 
 if (cluster.isMaster && process.env.NODE_ENV === 'production' && false) {
-  console.log('🚀 Smart Recruitment Platform Starting...');
+  console.log('🚀 Jobify Starting...');
   console.log(`🖥️  Forking ${Math.min(numCPUs, 4)} workers...`);
 
   for (let i = 0; i < Math.min(numCPUs, 4); i++) {
@@ -141,7 +141,7 @@ if (cluster.isMaster && process.env.NODE_ENV === 'production' && false) {
   // Root endpoint
   app.get('/', (req, res) => {
     res.json({
-      message: 'Smart Recruitment Platform API',
+      message: 'Jobify API',
       version: '3.0.0',
       status: 'running'
     });

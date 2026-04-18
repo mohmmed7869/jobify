@@ -14,7 +14,7 @@ const seedData = async () => {
 
     // Clear existing sample data for a clean start
     console.log('Clearing existing sample users, jobs, applications and settings...');
-    const adminEmail = 'hshamaljmr53@gmail.com';
+    const adminEmail = 'mohom77393@gmail.com';
     const sampleEmails = [
       adminEmail,
       'employer@example.com',
@@ -32,13 +32,13 @@ const seedData = async () => {
     // 1. Create Admin User
     console.log('Creating Admin User...');
     await User.create({
-        name: 'المهندس هشام المجمر',
+        name: 'المهندس محمد علي',
         email: adminEmail,
         password: 'admin123456',
         role: 'admin',
         isVerified: true,
         profile: {
-          phone: '773988932',
+          phone: '783332292',
           location: { city: 'صنعاء', country: 'اليمن' }
         }
       });
@@ -267,7 +267,7 @@ const seedData = async () => {
       openaiModel: 'gpt-3.5-turbo',
       serverMaintenance: false,
       enableRegistration: true,
-      supportEmail: 'support@hisham-platform.com'
+      supportEmail: 'mohom77393@gmail.com'
     });
     console.log('System settings created.');
 

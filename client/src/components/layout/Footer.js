@@ -22,7 +22,7 @@ const Footer = () => {
               <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-primary to-primary-dark rounded-xl md:rounded-2xl flex items-center justify-center shadow-glow-lg border border-white/20">
                 <span className="text-white font-black text-xl md:text-2xl">ت</span>
               </div>
-              <span className="text-xl md:text-2xl font-black tracking-tight text-themed-text">منصة التوظيف</span>
+              <span className="text-xl md:text-2xl font-black tracking-tight text-themed-text">Jobify</span>
             </Link>
             <p className="text-themed-text-sec font-medium leading-relaxed mb-6 md:mb-8 text-sm md:text-base max-w-md">
               الجيل الثالث من منصات التوظيف الذكية، نستخدم أقوى تقنيات الذكاء الاصطناعي لربط العقول المبدعة بأفضل بيئات العمل العالمية.
@@ -74,8 +74,8 @@ const Footer = () => {
                   <FiMail size={18} />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[9px] md:text-[10px] font-black text-themed-text-ter uppercase tracking-widest mb-0.5 md:mb-1">البريد الإلكتروني</p>
-                  <p className="text-themed-text font-bold text-sm md:text-base truncate">hshamalmjmr53@gmail.com</p>
+                  <p className="text-[9px] md:text-[10px] font-black text-themed-text-sec opacity-80 uppercase tracking-widest mb-0.5 md:mb-1">البريد الإلكتروني</p>
+                  <p className="text-themed-text font-bold text-sm md:text-base break-words">mohom77393@gmail.com</p>
                 </div>
               </li>
               <li className="flex items-start gap-3 md:gap-4 group">
@@ -83,8 +83,8 @@ const Footer = () => {
                   <FiPhone size={18} />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[9px] md:text-[10px] font-black text-themed-text-ter uppercase tracking-widest mb-0.5 md:mb-1">رقم التواصل</p>
-                  <p className="text-themed-text font-bold text-sm md:text-base" dir="ltr">+967 773988932</p>
+                  <p className="text-[9px] md:text-[10px] font-black text-themed-text-sec opacity-80 uppercase tracking-widest mb-0.5 md:mb-1">رقم التواصل</p>
+                  <p className="text-themed-text font-bold text-sm md:text-base break-words" dir="ltr">+967 783332292</p>
                 </div>
               </li>
             </ul>
@@ -96,12 +96,12 @@ const Footer = () => {
           <div className="flex flex-col lg:flex-row justify-between items-center gap-8">
             <div className="text-center lg:text-right">
               <p className="text-themed-text-ter text-sm font-bold mb-2">
-                © 2026 منصة التوظيف الذكية. جميع الحقوق محفوظة.
+                © 2026 Jobify. جميع الحقوق محفوظة.
               </p>
               <div className="flex items-center gap-2 text-[10px] font-black text-themed-text-ter uppercase tracking-[0.2em]">
                 <span>Developed with</span>
                 <FiHeart className="text-error animate-pulse" />
-                <span>by Hisham Al-Mujamer & Smart Solution Team</span>
+                <span>by Mohammed Ali & Smart Solution Team</span>
               </div>
             </div>
             
@@ -131,9 +131,9 @@ const FooterLink = ({ to, children }) => (
 );
 
 const SocialIcon = ({ icon, href }) => (
-  <a 
+    <a 
     href={href} 
-    className="w-10 h-10 rounded-xl bg-primary-500/5 flex items-center justify-center text-themed-text-ter hover:bg-primary hover:text-white transition-all shadow-sm border border-primary-100/10"
+    className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center text-primary-700 hover:bg-primary-600 hover:text-white transition-all shadow-sm border border-primary-200"
   >
     {icon}
   </a>

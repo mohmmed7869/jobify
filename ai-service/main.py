@@ -5,7 +5,7 @@ import uvicorn
 from app.routers import ai_services
 
 app = FastAPI(
-    title="Smart Recruitment AI Service",
+    title="Jobify AI Service",
     description="Microservice for AI operations (Resume Parsing, Matching, Interview Gen)",
     version="3.0.0"
 )
@@ -24,7 +24,7 @@ app.include_router(ai_services.router, prefix="/api/v1/ai", tags=["AI Services"]
 
 @app.get("/")
 async def root():
-    return {"message": "Smart Recruitment AI Service is running"}
+    return {"message": "Jobify AI Service is running"}
 
 @app.get("/health")
 async def health():

@@ -61,9 +61,9 @@ const Privacy = () => {
               <p className="text-[10px] font-black text-themed-text-ter uppercase tracking-[0.3em] mb-4">Strategic Data Protection Policy</p>
               <div className="flex items-center gap-2">
                 <div className="h-px w-8 bg-primary-200"></div>
-                <p className="text-themed-text font-black text-xs">بإشراف المهندس هشام المجمر - فريق Smart Solution</p>
+                <p className="text-themed-text font-black text-xs">بإشراف المهندس محمد علي - فريق Smart Solution</p>
               </div>
-              <p className="text-primary-600 font-bold text-[10px] mt-1">hshamalmjmr53@gmail.com</p>
+              <p className="text-primary-600 font-bold text-[10px] mt-1">mohom77393@gmail.com</p>
             </div>
           </div>
         </div>

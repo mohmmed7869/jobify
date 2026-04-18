@@ -176,10 +176,10 @@ const JobSearch = () => {
                   
                   <div className="flex items-center justify-between mb-8">
                     <h3 className="text-lg lg:text-xl font-black themed-text flex items-center gap-2">
-                      <FiActivity className="text-primary" />
+                      <FiActivity className="text-primary shrink-0" />
                       خيارات التصفية
                     </h3>
-                    <button onClick={clearFilters} className="text-primary text-[10px] sm:text-xs font-black hover:underline px-3 py-1.5 bg-primary-500/10 rounded-xl">مسح الكل</button>
+                    <button onClick={clearFilters} className="text-primary text-[10px] sm:text-xs font-black hover:underline px-3 py-1.5 bg-primary-500/10 rounded-xl shrink-0">مسح الكل</button>
                   </div>
 
                   <div className="space-y-6 lg:space-y-8">

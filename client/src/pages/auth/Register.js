@@ -128,8 +128,8 @@ const Register = () => {
   return (
     <div className="min-h-screen mesh-gradient-vibrant flex items-center justify-center py-6 md:py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden" dir="rtl">
       {/* Background Elements */}
-      <div className="absolute top-0 right-0 w-[250px] md:w-[500px] h-[250px] md:h-[500px] bg-primary-500/10 rounded-full blur-[60px] md:blur-[120px] -mr-24 md:-mr-64 -mt-24 md:-mt-64 animate-pulse"></div>
-      <div className="absolute bottom-0 left-0 w-[250px] md:w-[500px] h-[250px] md:h-[500px] bg-accent/10 rounded-full blur-[60px] md:blur-[120px] -ml-24 md:-ml-64 -mb-24 md:-mb-64 animate-pulse" style={{ animationDelay: '2s' }}></div>
+      <div className="absolute top-0 right-0 w-[250px] md:w-[500px] h-[250px] md:h-[500px] bg-primary-500/5 rounded-full blur-[60px] md:blur-[100px] -mr-24 md:-mr-64 -mt-24 md:-mt-64 animate-pulse"></div>
+      <div className="absolute bottom-0 left-0 w-[250px] md:w-[500px] h-[250px] md:h-[500px] bg-accent/5 rounded-full blur-[60px] md:blur-[100px] -ml-24 md:-ml-64 -mb-24 md:-mb-64 animate-pulse" style={{ animationDelay: '2s' }}></div>
 
       <div className="max-w-2xl w-full relative z-10">
         <div className="text-center mb-6 md:mb-8 px-4">
@@ -160,7 +160,7 @@ const Register = () => {
                   className="space-y-4 md:space-y-6"
                 >
                   <div className="text-center mb-4 md:mb-8">
-                    <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-primary-600 bg-primary-500/10 px-3 py-1 rounded-full border border-primary-500/20">الخطوة الأولى</span>
+                    <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-primary-700 bg-primary-100 px-3 py-1 rounded-full border border-primary-200">الخطوة الأولى</span>
                     <h3 className="text-lg md:text-2xl font-black themed-text mt-3 md:mt-4">المعلومات الأساسية</h3>
                   </div>
 
@@ -171,7 +171,7 @@ const Register = () => {
                         <FiUser className="absolute right-4 top-1/2 -translate-y-1/2 text-themed-text-ter group-focus-within:text-primary-500 transition-colors" />
                         <input 
                           type="text" name="name" required value={formData.name} onChange={handleChange}
-                          className="formal-input pr-11 md:pr-12 rounded-xl focus:ring-primary-500/30 text-sm md:text-base h-11 md:h-14" placeholder="أدخل اسمك كما في الهوية" 
+                          className="formal-input px-12 rounded-xl focus:ring-primary-500/30 text-sm md:text-base h-11 md:h-14" placeholder="أدخل اسمك كما في الهوية" 
                         />
                       </div>
                     </div>
@@ -182,7 +182,7 @@ const Register = () => {
                         <FiMail className="absolute right-4 top-1/2 -translate-y-1/2 text-themed-text-ter group-focus-within:text-primary-500 transition-colors" />
                         <input 
                           type="email" name="email" required value={formData.email} onChange={handleChange}
-                          className="formal-input pr-11 md:pr-12 rounded-xl focus:ring-primary-500/30 text-sm md:text-base h-11 md:h-14" placeholder="example@domain.com" 
+                          className="formal-input px-12 rounded-xl focus:ring-primary-500/30 text-sm md:text-base h-11 md:h-14" placeholder="example@domain.com" 
                         />
                       </div>
                     </div>
@@ -194,7 +194,7 @@ const Register = () => {
                           <FiLock className="absolute right-4 top-1/2 -translate-y-1/2 text-themed-text-ter group-focus-within:text-primary-500 transition-colors" />
                           <input 
                             type={showPassword ? "text" : "password"} name="password" required value={formData.password} onChange={handleChange}
-                            className="formal-input pr-11 md:pr-12 pl-11 md:pl-12 rounded-xl focus:ring-primary-500/30 text-sm md:text-base h-11 md:h-14" placeholder="••••••••" 
+                            className="formal-input px-12 rounded-xl focus:ring-primary-500/30 text-sm md:text-base h-11 md:h-14" placeholder="••••••••" 
                           />
                           <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute left-4 top-1/2 -translate-y-1/2 text-themed-text-ter hover:text-primary-500 transition-colors">
                             {showPassword ? <FiEyeOff /> : <FiEye />}
@@ -207,7 +207,7 @@ const Register = () => {
                           <FiLock className="absolute right-4 top-1/2 -translate-y-1/2 text-themed-text-ter group-focus-within:text-primary-500 transition-colors" />
                           <input 
                             type="password" name="confirmPassword" required value={formData.confirmPassword} onChange={handleChange}
-                            className="formal-input pr-11 md:pr-12 rounded-xl focus:ring-primary-500/30 text-sm md:text-base h-11 md:h-14" placeholder="••••••••" 
+                            className="formal-input px-12 rounded-xl focus:ring-primary-500/30 text-sm md:text-base h-11 md:h-14" placeholder="••••••••" 
                           />
                         </div>
                       </div>
@@ -243,7 +243,7 @@ const Register = () => {
                   className="space-y-5 md:space-y-6"
                 >
                   <div className="text-center mb-4 md:mb-8">
-                    <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-primary-600 bg-primary-500/10 px-3 py-1 rounded-full border border-primary-500/20">الخطوة الثانية</span>
+                    <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-primary-700 bg-primary-100 px-3 py-1 rounded-full border border-primary-200">الخطوة الثانية</span>
                     <h3 className="text-lg md:text-2xl font-black themed-text mt-3 md:mt-4">تفاصيل الحساب</h3>
                   </div>
 
@@ -291,7 +291,7 @@ const Register = () => {
                           <FiPhone className="absolute right-4 top-1/2 -translate-y-1/2 text-themed-text-ter group-focus-within:text-primary-500 transition-colors" />
                           <input 
                             type="tel" name="phone" required value={formData.phone} onChange={handleChange}
-                            className="formal-input pr-11 md:pr-12 text-left rounded-xl focus:ring-primary-500/30 text-sm md:text-base h-11 md:h-14" placeholder="7XXXXXXXX" dir="ltr"
+                            className="formal-input px-12 text-left rounded-xl focus:ring-primary-500/30 text-sm md:text-base h-11 md:h-14" placeholder="7XXXXXXXX" dir="ltr"
                           />
                         </div>
                       </div>
@@ -305,7 +305,7 @@ const Register = () => {
                             <FiBriefcase className="absolute right-4 top-1/2 -translate-y-1/2 text-themed-text-ter group-focus-within:text-primary-500 transition-colors" />
                             <input 
                               type="text" name="companyName" required={formData.role === 'employer'} value={formData.companyName} onChange={handleChange}
-                              className="formal-input pr-11 md:pr-12 rounded-xl focus:ring-primary-500/30 text-sm md:text-base h-11 md:h-14" placeholder="اسم شركتك أو مؤسستك" 
+                              className="formal-input px-12 rounded-xl focus:ring-primary-500/30 text-sm md:text-base h-11 md:h-14" placeholder="اسم شركتك أو مؤسستك" 
                             />
                           </div>
                         </div>
@@ -315,7 +315,7 @@ const Register = () => {
                             <FiLayers className="absolute right-4 top-1/2 -translate-y-1/2 text-themed-text-ter group-focus-within:text-primary-500 transition-colors" />
                             <input 
                               type="text" name="industry" value={formData.industry} onChange={handleChange} 
-                              className="formal-input pr-11 md:pr-12 rounded-xl focus:ring-primary-500/30 text-sm md:text-base h-11 md:h-14" placeholder="مثلاً: تكنولوجيا المعلومات" 
+                              className="formal-input px-12 rounded-xl focus:ring-primary-500/30 text-sm md:text-base h-11 md:h-14" placeholder="مثلاً: تكنولوجيا المعلومات" 
                             />
                           </div>
                         </div>
@@ -343,7 +343,7 @@ const Register = () => {
                   className="space-y-5 md:space-y-6"
                 >
                   <div className="text-center mb-4 md:mb-8">
-                    <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-primary-600 bg-primary-500/10 px-3 py-1 rounded-full border border-primary-500/20">الخطوة الأخيرة</span>
+                    <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-primary-700 bg-primary-100 px-3 py-1 rounded-full border border-primary-200">الخطوة الأخيرة</span>
                     <h3 className="text-lg md:text-2xl font-black themed-text mt-3 md:mt-4">التوثيق والهوية</h3>
                   </div>
 

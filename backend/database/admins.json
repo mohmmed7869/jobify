@@ -1,10 +1,10 @@
 [
   {
     "id": "admin_1",
-    "name": "المهندس هشام المجمر",
-    "email": "hshamaljmr53@gmail.com",
+    "name": "المهندس محمد علي",
+    "email": "mohom77393@gmail.com",
     "password": "admin123456",
-    "phone": "773988932",
+    "phone": "783332292",
     "role": "super_admin",
     "permissions": ["all"],
     "createdAt": "2025-07-18T10:00:00Z",

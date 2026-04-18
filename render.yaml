@@ -1,0 +1,52 @@
+services:
+  # 1. Jobify Backend (Node.js)
+  - type: web
+    name: jobify-backend
+    env: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false # Render will ask for this value manually
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRE
+        value: 30d
+      - key: JWT_COOKIE_EXPIRE
+        value: "30"
+      - key: PYTHON_AI_SERVICE_URL
+        fromService:
+          name: jobify-ai
+          type: web
+          property: host
+        # We append the path in the app or here if needed. 
+        # Render's internal host is just the name. 
+        # But wait, Render internal URLs are http://service-name:port
+        value: http://jobify-ai:8000/api/v1/ai
+
+  # 2. Jobify AI Service (Python)
+  - type: web
+    name: jobify-ai
+    env: python
+    rootDir: ai-service
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PORT
+        value: 8000
+
+  # 3. Jobify Client (Static Site)
+  - type: static
+    name: jobify-client
+    rootDir: client
+    buildCommand: npm install && npm run build
+    publishPath: build
+    envVars:
+      - key: REACT_APP_API_URL
+        fromService:
+          name: jobify-backend
+          type: web
+          property: url

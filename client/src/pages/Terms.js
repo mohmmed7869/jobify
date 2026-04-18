@@ -25,7 +25,7 @@ const Terms = () => {
                   <FiCheckCircle className="text-emerald-500" /> قبول الشروط
                 </h2>
                 <p>
-                  باستخدامك لمنصة التوظيف الذكية، فإنك توافق على الالتزام بشروط الاستخدام هذه. إذا كنت لا توافق على أي جزء منها، يرجى عدم استخدام المنصة. نحن نسعى لتقديم أفضل تجربة توظيف مدعومة بالذكاء الاصطناعي.
+                  باستخدامك لJobify، فإنك توافق على الالتزام بشروط الاستخدام هذه. إذا كنت لا توافق على أي جزء منها، يرجى عدم استخدام المنصة. نحن نسعى لتقديم أفضل تجربة توظيف مدعومة بالذكاء الاصطناعي.
                 </p>
               </section>
 
@@ -52,7 +52,7 @@ const Terms = () => {
                   <FiCheckCircle className="text-emerald-500" /> المحتوى والملكية الفكرية
                 </h2>
                 <p>
-                  جميع الحقوق المتعلقة بالعلامة التجارية والبرمجيات والخوارزميات المستخدمة هي ملكية حصرية للمهندس هشام المجمر وفريق التطوير. لا يجوز نسخ أو هندسة أي جزء من المنصة دون إذن خطي مسبق.
+                  جميع الحقوق المتعلقة بالعلامة التجارية والبرمجيات والخوارزميات المستخدمة هي ملكية حصرية للمهندس محمد علي وفريق التطوير. لا يجوز نسخ أو هندسة أي جزء من المنصة دون إذن خطي مسبق.
                 </p>
               </section>
             </div>
@@ -61,8 +61,8 @@ const Terms = () => {
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4">Strategic Compliance Framework</p>
               <div className="flex items-center gap-2">
                 <div className="h-px w-8 bg-slate-200"></div>
-                <p className="text-slate-900 font-black text-xs">بإشراف المهندس هشام المجمر - فريق Smart Solution</p>
-            <p className="text-primary-600 font-bold text-[10px] mt-1">hshamalmjmr53@gmail.com</p>
+                <p className="text-slate-900 font-black text-xs">بإشراف المهندس محمد علي - فريق Smart Solution</p>
+            <p className="text-primary-600 font-bold text-[10px] mt-1">mohom77393@gmail.com</p>
                 <div className="h-px w-8 bg-slate-200"></div>
               </div>
             </div>

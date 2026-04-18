@@ -17,7 +17,7 @@ const AdminDashboard = () => {
   const [jobs, setJobs] = useState([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [logs, setLogs] = useState([
-    { id: 1, action: 'دخول النظام', user: 'المهندس هشام', time: 'منذ دقيقة', status: 'success' },
+    { id: 1, action: 'دخول النظام', user: 'المهندس محمد', time: 'منذ دقيقة', status: 'success' },
     { id: 2, action: 'تحديث خوارزمية AI', user: 'نظام آلي', time: 'منذ 5 دقائق', status: 'info' },
     { id: 3, action: 'حظر مستخدم مخالف', user: 'المسؤول', time: 'منذ ساعة', status: 'warning' },
   ]);

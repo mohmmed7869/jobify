@@ -64,8 +64,8 @@ const Login = () => {
   return (
     <div className="min-h-screen mesh-gradient-vibrant flex items-center justify-center py-6 md:py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden" dir="rtl">
       {/* Dynamic Background Elements */}
-      <div className="absolute top-0 left-0 w-[250px] md:w-[500px] h-[250px] md:h-[500px] bg-primary-500/10 rounded-full blur-[60px] md:blur-[120px] -ml-24 md:-ml-64 -mt-24 md:-mt-64 animate-pulse"></div>
-      <div className="absolute bottom-0 right-0 w-[250px] md:w-[500px] h-[250px] md:h-[500px] bg-accent/10 rounded-full blur-[60px] md:blur-[120px] -mr-24 md:-mr-64 -mb-24 md:-mb-64 animate-pulse" style={{ animationDelay: '2s' }}></div>
+      <div className="absolute top-0 left-0 w-[250px] md:w-[500px] h-[250px] md:h-[500px] bg-primary-500/5 rounded-full blur-[60px] md:blur-[100px] -ml-24 md:-ml-64 -mt-24 md:-mt-64 animate-pulse"></div>
+      <div className="absolute bottom-0 right-0 w-[250px] md:w-[500px] h-[250px] md:h-[500px] bg-accent/5 rounded-full blur-[60px] md:blur-[100px] -mr-24 md:-mr-64 -mb-24 md:-mb-64 animate-pulse" style={{ animationDelay: '2s' }}></div>
 
       <div className="max-w-md w-full relative z-10">
         <div className="glass-premium magnetic-lift overflow-hidden rounded-[2rem] md:rounded-[3rem] border-none shadow-premium-xl transition-all duration-500 hover:shadow-glow-primary">
@@ -95,7 +95,7 @@ const Login = () => {
                       name="email"
                       type="email"
                       required
-                      className="formal-input pr-11 md:pr-12 rounded-xl md:rounded-2xl focus:ring-primary-500/30 text-sm md:text-base h-11 md:h-14"
+                      className="formal-input px-12 rounded-xl md:rounded-2xl focus:ring-primary-500/30 text-sm md:text-base h-11 md:h-14"
                       placeholder="name@example.com"
                       value={formData.email}
                       onChange={handleChange}
@@ -114,7 +114,7 @@ const Login = () => {
                       name="password"
                       type={showPassword ? 'text' : 'password'}
                       required
-                      className="formal-input pr-11 md:pr-12 pl-11 md:pl-12 rounded-xl md:rounded-2xl focus:ring-primary-500/30 text-sm md:text-base h-11 md:h-14"
+                      className="formal-input px-12 rounded-xl md:rounded-2xl focus:ring-primary-500/30 text-sm md:text-base h-11 md:h-14"
                       placeholder="••••••••"
                       value={formData.password}
                       onChange={handleChange}

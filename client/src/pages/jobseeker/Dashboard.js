@@ -168,8 +168,8 @@ const JobSeekerDashboard = () => {
               <span className="flex h-2 w-2 rounded-full bg-primary-500 animate-pulse shadow-glow"></span>
               نظام التوظيف الذكي الفائق v3.5 - Luxury Edition
             </motion.div>
-            <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black themed-text mb-6 tracking-tight leading-tight">
-              أهلاً، <span className="premium-gradient-text drop-shadow-sm">{user?.name}</span> 👋
+            <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black themed-text mb-6 tracking-tight leading-tight flex flex-wrap items-center gap-2 justify-center md:justify-start">
+              أهلاً، <span className="premium-gradient-text drop-shadow-sm break-words">{user?.name}</span> <span>👋</span>
             </h1>
             <p className="themed-text-sec text-base md:text-2xl font-bold max-w-2xl mx-auto md:mx-0 opacity-90 leading-relaxed">
               اكتشف محرك المطابقة الذكي <span className="premium-gradient-text text-glow">{stats.matches}</span> وظيفة جديدة تناسب خبراتك الاستراتيجية اليوم.

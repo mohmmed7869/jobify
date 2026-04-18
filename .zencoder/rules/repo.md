@@ -6,7 +6,7 @@ alwaysApply: true
 # Repository Information Overview
 
 ## Repository Summary
-The "Smart Recruitment Platform" (منصة التوظيف الذكية) is an advanced AI-driven system designed to bridge the gap between talent and job opportunities. It features a modern web architecture with a React frontend, a Node.js backend, and a specialized Python AI microservice for advanced processing such as resume parsing and job matching.
+The "Jobify" (Jobify) is an advanced AI-driven system designed to bridge the gap between talent and job opportunities. It features a modern web architecture with a React frontend, a Node.js backend, and a specialized Python AI microservice for advanced processing such as resume parsing and job matching.
 
 ## Repository Structure
 The repository is organized as a monorepo with three primary components:

@@ -18,7 +18,7 @@ const sendEmail = async (options) => {
 
     // إعداد الرسالة
     const message = {
-      from: `منصة التوظيف الذكية <${process.env.EMAIL_USER}>`,
+      from: `Jobify <${process.env.EMAIL_USER}>`,
       to: options.email,
       subject: options.subject,
       text: options.message,
@@ -26,7 +26,7 @@ const sendEmail = async (options) => {
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
           <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
             <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #2563eb; margin: 0;">منصة التوظيف الذكية</h1>
+              <h1 style="color: #2563eb; margin: 0;">Jobify</h1>
               <p style="color: #6b7280; margin: 5px 0 0 0;">نربط المواهب بالفرص</p>
             </div>
             
@@ -39,7 +39,7 @@ const sendEmail = async (options) => {
             
             <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
               <p style="color: #6b7280; font-size: 14px; margin: 0;">
-                هذا البريد الإلكتروني تم إرساله تلقائياً من منصة التوظيف الذكية
+                هذا البريد الإلكتروني تم إرساله تلقائياً من Jobify
               </p>
               <p style="color: #6b7280; font-size: 12px; margin: 10px 0 0 0;">
                 إذا كان لديك أي استفسارات، يرجى التواصل معنا
@@ -66,7 +66,7 @@ const sendWelcomeEmail = async (user) => {
   const welcomeMessage = `
 مرحباً ${user.name}،
 
-أهلاً وسهلاً بك في منصة التوظيف الذكية!
+أهلاً وسهلاً بك في Jobify!
 
 نحن سعداء لانضمامك إلى مجتمعنا المتنامي من المحترفين وأصحاب العمل.
 
@@ -91,12 +91,12 @@ ${user.role === 'jobseeker' ?
 
 نتطلع لمساعدتك في رحلتك المهنية!
 
-فريق منصة التوظيف الذكية
+فريق Jobify
   `;
 
   return await sendEmail({
     email: user.email,
-    subject: 'مرحباً بك في منصة التوظيف الذكية! 🎉',
+    subject: 'مرحباً بك في Jobify! 🎉',
     message: welcomeMessage
   });
 };
@@ -127,7 +127,7 @@ ${user.role === 'jobseeker' ?
 
 لا تفوت الفرص المتاحة!
 
-فريق منصة التوظيف الذكية
+فريق Jobify
   `;
 
   return await sendEmail({
@@ -142,7 +142,7 @@ const sendWeeklyReport = async (user, stats) => {
   const reportMessage = `
 مرحباً ${user.name},
 
-إليك تقريرك الأسبوعي من منصة التوظيف الذكية:
+إليك تقريرك الأسبوعي من Jobify:
 
 ${user.role === 'jobseeker' ? 
   `📊 إحصائياتك هذا الأسبوع:
@@ -169,7 +169,7 @@ ${stats.topCandidates ? stats.topCandidates.map(candidate => `• ${candidate.na
 
 استمر في التميز!
 
-فريق منصة التوظيف الذكية
+فريق Jobify
   `;
 
   return await sendEmail({
@@ -201,7 +201,7 @@ ${job.description.substring(0, 200)}...
 
 حظاً موفقاً!
 
-فريق منصة التوظيف الذكية
+فريق Jobify
   `;
 
   return await sendEmail({

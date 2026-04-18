@@ -24,17 +24,19 @@ const JobCard = ({ job }) => {
       <div className="absolute top-0 right-0 w-32 h-32 bg-primary-600/5 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-primary-600/10 transition-colors"></div>
       
       <div className="p-4 sm:p-6">
-        {job.urgent && (
-          <div className="absolute top-2 sm:top-4 left-2 sm:left-4 bg-red-500 text-white text-[8px] sm:text-[10px] font-black px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full shadow-glow z-10 animate-pulse uppercase tracking-widest">
-            عاجل جداً
-          </div>
-        )}
+        <div className="absolute top-2 sm:top-4 left-2 sm:left-4 right-2 sm:right-4 flex justify-between items-start pointer-events-none z-10">
+          {job.urgent ? (
+            <div className="bg-red-500 text-white text-[8px] sm:text-[10px] font-black px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full shadow-glow animate-pulse uppercase tracking-widest pointer-events-auto">
+              عاجل جداً
+            </div>
+          ) : (
+            <div></div> /* Spacer */
+          )}
 
-        {/* Match Score Badge */}
-        <div className="absolute top-2 sm:top-4 right-2 sm:right-4 flex items-center gap-2">
-          <div className="bg-slate-900/5 backdrop-blur-md px-2 sm:px-3 py-1 sm:py-1.5 rounded-full flex items-center gap-1.5 sm:gap-2 border border-slate-200/50">
-            <div className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-            <span className="text-[8px] sm:text-[10px] font-black text-slate-700 uppercase tracking-widest">مطابقة {matchScore}%</span>
+          {/* Match Score Badge */}
+          <div className="bg-slate-900/5 backdrop-blur-md px-2 sm:px-3 py-1 sm:py-1.5 rounded-full flex items-center gap-1.5 sm:gap-2 border border-slate-200/50 pointer-events-auto">
+            <div className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></div>
+            <span className="text-[8px] sm:text-[10px] font-black text-slate-700 uppercase tracking-widest truncate">مطابقة {matchScore}%</span>
           </div>
         </div>
         

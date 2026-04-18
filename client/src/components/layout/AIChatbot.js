@@ -75,11 +75,11 @@ const AIChatbot = () => {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-br from-primary-600 to-accent text-white rounded-2xl shadow-glow flex items-center justify-center z-50 hover:scale-110 transition-all group"
+        className="fixed bottom-6 right-4 sm:right-6 w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-primary-600 to-accent text-white rounded-2xl shadow-glow flex items-center justify-center z-40 hover:scale-110 transition-all group lg:bottom-10"
         title="المساعد الذكي"
       >
-        <FaRobot size={30} className="group-hover:rotate-12 transition-transform" />
-        <span className="absolute -top-1 -left-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></span>
+        <FaRobot size={26} className="sm:text-[30px] group-hover:rotate-12 transition-transform" />
+        <span className="absolute -top-1 -left-1 w-3 h-3 sm:w-4 sm:h-4 bg-green-500 border-2 border-white rounded-full"></span>
       </button>
     );
   }

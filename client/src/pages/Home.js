@@ -58,7 +58,7 @@ const Home = () => {
   ];
 
   return (
-    <div className="min-h-screen luxury-aura relative overflow-hidden">
+    <div className="min-h-screen luxury-aura relative overflow-x-hidden">
       {/* Background Ornaments */}
       <div className="blur-circle w-[500px] h-[500px] bg-primary-500/10 -top-48 -right-48"></div>
       <div className="blur-circle w-[400px] h-[400px] bg-accent/10 bottom-0 -left-24" style={{ animationDelay: '2s' }}></div>
@@ -81,7 +81,7 @@ const Home = () => {
               variants={itemVariants}
             >
               {t('home.hero_title')} <br className="hidden sm:block"/>
-              <span className="premium-gradient-text drop-shadow-2xl text-glow">{t('home.hero_title_accent')}</span>
+              <span className="premium-gradient-text drop-shadow-md">{t('home.hero_title_accent')}</span>
             </motion.h1>
             <motion.p 
               className="text-lg md:text-3xl mb-8 md:mb-14 themed-text-sec max-w-4xl mx-auto font-bold leading-relaxed opacity-90"
@@ -133,7 +133,7 @@ const Home = () => {
                 </div>
                 <div className="text-right min-w-0">
                   <div className="premium-gradient-text text-xl md:text-3xl tracking-tight truncate">Smart Solution Team</div>
-                  <div className="text-primary-600 text-[10px] md:text-sm font-black tracking-wide opacity-80 truncate">hshamalmjmr53@gmail.com | صنعاء، اليمن</div>
+                  <div className="text-primary-600 text-[10px] md:text-sm font-black tracking-wide opacity-80 truncate">mohom77393@gmail.com | صنعاء، اليمن</div>
                 </div>
               </motion.div>
             </motion.div>
@@ -142,7 +142,7 @@ const Home = () => {
       </section>
 
       {/* Features Grid */}
-      <section className="py-20 md:py-40 relative">
+      <section className="py-20 md:py-40 relative overflow-hidden">
         <div className="blur-circle w-[600px] h-[600px] bg-primary-500/5 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
         <div className="premium-container relative z-10">
           <motion.div 
@@ -267,13 +267,13 @@ const Home = () => {
         <div className="premium-container px-4 relative z-10">
           <div className="text-center mb-24 md:mb-32">
             <h2 className="text-4xl md:text-6xl lg:text-8xl font-black text-themed-text mb-8 tracking-tighter">
-              نخبة <span className="premium-gradient-text">فريق Smart Solution</span>
+              نخبة <span className="text-primary-600 font-extrabold">فريق Smart Solution</span>
             </h2>
             <p className="text-themed-text-ter font-black text-lg md:text-2xl tracking-[0.2em] opacity-60 uppercase">The Architects of Innovation</p>
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 md:gap-12">
-            <TeamMember name="المهندس هشام المجمر" role="رئيس فريق Smart Solution" isLead />
+            <TeamMember name="المهندس محمد علي" role="رئيس فريق Smart Solution" isLead />
             <TeamMember name="المهندس مكين الشلفي" role="مهندس برمجيات" />
             <TeamMember name="المهندس هيثم نجاد" role="مهندس برمجيات" />
             <TeamMember name="المهندس محمد حنش" role="مهندس برمجيات" />
@@ -288,10 +288,10 @@ const Home = () => {
           <p className="text-themed-text-ter text-[10px] font-black uppercase tracking-[0.5em] mb-4">Developed by Smart Solution Engineering Team</p>
           <div className="flex items-center justify-center gap-2">
             <div className="h-px w-8 bg-themed-border-light"></div>
-            <p className="text-themed-text font-black text-lg">بإشراف المهندس هشام المجمر & Smart Solution Team</p>
+            <p className="text-themed-text font-black text-lg">بإشراف المهندس محمد علي & Smart Solution Team</p>
             <div className="h-px w-8 bg-themed-border-light"></div>
           </div>
-          <p className="text-primary-600 font-black text-xs mt-4">hshamalmjmr53@gmail.com</p>
+          <p className="text-primary-600 font-black text-xs mt-4">mohom77393@gmail.com</p>
         </div>
       </footer>
     </div>
@@ -300,7 +300,7 @@ const Home = () => {
 
 const TeamMember = ({ name, role, isLead }) => (
   <motion.div 
-    className={`p-10 rounded-[2.5rem] text-center transition-all duration-700 ${isLead ? 'bg-gradient-to-br from-primary-600 via-primary-700 to-accent-dark text-white shadow-glow-lg scale-110 z-10 luxury-border' : 'premium-card'}`}
+    className={`p-10 rounded-[2.5rem] text-center transition-all duration-700 w-full overflow-hidden ${isLead ? 'bg-gradient-to-br from-primary-600 via-primary-700 to-accent-dark text-white shadow-glow-lg scale-110 z-10 luxury-border' : 'premium-card'}`}
     whileHover={{ y: -20, scale: isLead ? 1.15 : 1.08 }}
     initial={{ opacity: 0, scale: 0.9 }}
     whileInView={{ opacity: 1, scale: isLead ? 1.1 : 1 }}
@@ -309,7 +309,7 @@ const TeamMember = ({ name, role, isLead }) => (
     <div className={`w-24 h-24 mx-auto rounded-[1.5rem] flex items-center justify-center mb-8 text-4xl font-black shadow-inner rotate-3 group-hover:rotate-0 transition-transform duration-500 ${isLead ? 'bg-white/20 text-white backdrop-blur-md' : 'bg-primary-500/10 text-primary-600'}`}>
       {name.split(' ').pop().charAt(0)}
     </div>
-    <h3 className={`font-black text-xl mb-3 tracking-tight ${isLead ? 'text-white' : 'themed-text'}`}>{name}</h3>
+    <h3 className={`font-black text-lg md:text-xl mb-3 tracking-tight leading-tight break-words ${isLead ? 'text-white' : 'themed-text'}`}>{name}</h3>
     <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${isLead ? 'text-white/80' : 'text-primary-600/70'}`}>{role}</p>
   </motion.div>
 );

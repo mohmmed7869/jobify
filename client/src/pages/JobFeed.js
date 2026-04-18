@@ -234,7 +234,7 @@ const JobFeed = () => {
 
               <div className="text-center px-4">
                 <p className="text-[10px] text-slate-400 leading-relaxed">
-                  © 2026 منصة التوظيف الذكية <br/>
+                  © 2026 Jobify <br/>
                   <span className="font-black text-slate-500">Ultra-Premium Edition</span>
                 </p>
               </div>

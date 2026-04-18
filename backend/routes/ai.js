@@ -951,7 +951,7 @@ router.post('/chat', protect, async (req, res) => {
       return res.status(200).json({
         success: true,
         data: {
-          message: `مرحباً ${req.user.name}! أنا مساعدك الذكي في منصة التوظيف. حالياً أنا أعمل في وضع المعاينة المحدود. كيف يمكنني مساعدتك في رحلتك المهنية اليوم؟`,
+          message: `مرحباً ${req.user.name}! أنا مساعدك الذكي في Jobify. حالياً أنا أعمل في وضع المعاينة المحدود. كيف يمكنني مساعدتك في رحلتك المهنية اليوم؟`,
           timestamp: new Date().toISOString()
         }
       });

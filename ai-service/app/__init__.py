@@ -1,1 +1,1 @@
-# Smart Recruitment Platform
+# Jobify

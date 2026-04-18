@@ -45,8 +45,8 @@ const SocialAuthSuccess = () => {
         </div>
 
         <div className="mt-12 pt-8 border-t border-slate-100">
-          <p className="text-slate-900 font-black text-xs">بإشراف المهندس هشام المجمر - فريق Smart Solution</p>
-          <p className="text-primary-600 font-bold text-[10px] mt-1">hshamalmjmr53@gmail.com</p>
+          <p className="text-slate-900 font-black text-xs">بإشراف المهندس محمد علي - فريق Smart Solution</p>
+          <p className="text-primary-600 font-bold text-[10px] mt-1">mohom77393@gmail.com</p>
         </div>
       </div>
     </div>
