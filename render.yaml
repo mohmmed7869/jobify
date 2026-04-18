@@ -11,7 +11,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: MONGODB_URI
-        sync: false # Render will ask for this value manually
+        value: "mongodb+srv://mohamed:m123456m@cluster0.llziker.mongodb.net/smart-recruitment?appName=Cluster0"
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRE
