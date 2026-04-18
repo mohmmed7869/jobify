@@ -20,22 +20,6 @@ services:
         value: "sk-placeholder-not-required-for-local-dev"
       - key: JWT_COOKIE_EXPIRE
         value: "30"
-      - key: PYTHON_AI_SERVICE_URL
-        # Render's internal host is just the name. 
-        value: http://jobify-ai:8000/api/v1/ai
-
-  # 2. Jobify AI Service (Python)
-  - type: web
-    name: jobify-ai
-    env: python
-    plan: free
-    rootDir: ai-service
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
-    envVars:
-      - key: PORT
-        value: 8000
-
   # 3. Jobify Client (Static Site)
   - type: web
     name: jobify-client
