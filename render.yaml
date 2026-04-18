@@ -16,6 +16,8 @@ services:
         generateValue: true
       - key: JWT_EXPIRE
         value: 30d
+      - key: OPENAI_API_KEY
+        value: "sk-placeholder-not-required-for-local-dev"
       - key: JWT_COOKIE_EXPIRE
         value: "30"
       - key: PYTHON_AI_SERVICE_URL
