@@ -39,7 +39,7 @@ services:
     name: jobify-client
     env: static
     rootDir: client
-    buildCommand: npm install && npm run build
+    buildCommand: npm install && CI=false npm run build
     staticPublishPath: build
     envVars:
       - key: REACT_APP_API_URL
