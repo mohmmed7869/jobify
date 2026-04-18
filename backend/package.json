@@ -1,0 +1,290 @@
+{
+  "name": "smart-recruitment-platform",
+  "version": "3.0.0",
+  "description": "منصة التوظيف الذكية - نظام متقدم مدعوم بالذكاء الاصطناعي للربط بين المواهب والفرص",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "start:dev": "nodemon server.js",
+    "test": "jest --coverage --verbose",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
+    "lint:css": "stylelint **/*.css --fix",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,md,yml,yaml}\"",
+    "type-check": "tsc --noEmit",
+    "migrate": "npx sequelize-cli db:migrate",
+    "migrate:undo": "npx sequelize-cli db:migrate:undo",
+    "seed": "npx sequelize-cli db:seed:all",
+    "seed:undo": "npx sequelize-cli db:seed:undo:all",
+    "logs": "pm2 logs --lines 100",
+    "logs:error": "pm2 logs --err",
+    "monitor": "pm2 monit",
+    "status": "pm2 status",
+    "restart": "pm2 restart ecosystem.config.js",
+    "reload": "pm2 reload ecosystem.config.js",
+    "stop": "pm2 stop ecosystem.config.js",
+    "delete": "pm2 delete ecosystem.config.js",
+    "backup:db": "node scripts/backup-database.js",
+    "backup:full": "node scripts/full-backup.js",
+    "restore:db": "node scripts/restore-database.js",
+    "setup": "node scripts/enhanced-setup.js",
+    "setup:dev": "node scripts/dev-setup.js",
+    "health": "node scripts/health-check.js",
+    "healthcheck": "curl -f http://localhost:3000/api/health || exit 1",
+    "security:audit": "npm audit --audit-level moderate && snyk test",
+    "security:fix": "npm audit fix --force",
+    "performance": "node scripts/performance-test.js",
+    "analyze": "node scripts/analyze-bundle.js",
+    "docker:build": "docker build -t smart-recruitment:latest .",
+    "docker:build:dev": "docker build -f Dockerfile.dev -t smart-recruitment:dev .",
+    "docker:run": "docker-compose up -d",
+    "docker:run:dev": "docker-compose -f docker-compose.dev.yml up -d",
+    "docker:stop": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:clean": "docker system prune -f",
+    "k8s:deploy": "kubectl apply -f k8s/",
+    "k8s:delete": "kubectl delete -f k8s/",
+    "update:deps": "npm-check-updates -u && npm install",
+    "clean": "rm -rf node_modules client/node_modules coverage logs/*.log",
+    "clean:cache": "rm -rf cache/* sessions/* uploads/temp/*",
+    "docs:generate": "jsdoc -c jsdoc.config.js",
+    "docs:serve": "docsify serve docs",
+    "version:patch": "npm version patch && git push --tags",
+    "version:minor": "npm version minor && git push --tags",
+    "version:major": "npm version major && git push --tags",
+    "precommit": "lint-staged",
+    "prepare": "husky install"
+  },
+  "keywords": [
+    "recruitment",
+    "ai",
+    "job-matching",
+    "career",
+    "hr-tech",
+    "talent-acquisition",
+    "javascript",
+    "nodejs",
+    "react",
+    "arabic"
+  ],
+  "author": "Smart Recruitment Platform Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "dependencies": {
+    "@elastic/elasticsearch": "^8.11.0",
+    "@fastify/cors": "^9.0.1",
+    "@hapi/joi": "^17.1.1",
+    "@types/node": "^20.10.0",
+    "archiver": "^6.0.1",
+    "aws-sdk": "^2.1500.0",
+    "axios": "^1.6.2",
+    "bcryptjs": "^2.4.3",
+    "body-parser": "^1.20.2",
+    "bull": "^4.12.0",
+    "celebrate": "^15.0.3",
+    "chartjs-node-canvas": "^4.1.6",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.0",
+    "compression": "^1.7.4",
+    "compromise": "^14.10.0",
+    "connect-redis": "^7.1.0",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "csurf": "^1.11.0",
+    "date-fns": "^2.30.0",
+    "dotenv": "^16.3.1",
+    "exceljs": "^4.4.0",
+    "express": "^4.18.2",
+    "express-fileupload": "^1.4.3",
+    "express-rate-limit": "^7.1.5",
+    "express-session": "^1.17.3",
+    "express-useragent": "^1.0.15",
+    "express-validator": "^7.0.1",
+    "extract-zip": "^2.0.1",
+    "fastify": "^4.24.3",
+    "fluent-ffmpeg": "^2.1.2",
+    "geoip-lite": "^1.4.8",
+    "google-auth-library": "^9.4.1",
+    "googleapis": "^129.0.0",
+    "handlebars": "^4.7.8",
+    "helmet": "^7.1.0",
+    "i18n": "^0.15.1",
+    "ioredis": "^5.3.2",
+    "joi": "^17.11.0",
+    "jsonwebtoken": "^9.0.2",
+    "lodash": "^4.17.21",
+    "lunr": "^2.3.9",
+    "lunr-languages": "^1.13.0",
+    "mime-types": "^2.1.35",
+    "moment": "^2.29.4",
+    "mongodb": "^6.3.0",
+    "mongoose": "^8.0.3",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
+    "natural": "^6.5.0",
+    "node-cache": "^5.1.2",
+    "node-cron": "^3.0.3",
+    "node-schedule": "^2.1.1",
+    "nodemailer": "^6.9.7",
+    "openai": "^6.15.0",
+    "passport": "^0.7.0",
+    "passport-facebook": "^3.0.0",
+    "passport-github2": "^0.1.12",
+    "passport-google-oauth20": "^2.0.0",
+    "passport-jwt": "^4.0.1",
+    "passport-linkedin-oauth2": "^2.0.0",
+    "passport-local": "^1.0.0",
+    "passport-twitter": "^1.0.4",
+    "pdf-parse": "^2.4.5",
+    "pdfkit": "^0.14.0",
+    "pg": "^8.11.3",
+    "pg-hstore": "^2.3.4",
+    "qrcode": "^1.5.3",
+    "rate-limiter-flexible": "^4.0.1",
+    "redis": "^4.6.11",
+    "reflect-metadata": "^0.1.13",
+    "sequelize": "^6.35.1",
+    "sharp": "^0.33.1",
+    "socket.io": "^4.7.4",
+    "socket.io-redis": "^6.1.1",
+    "speakeasy": "^2.0.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0",
+    "twilio": "^4.19.0",
+    "typescript": "^5.3.2",
+    "uuid": "^9.0.1",
+    "validator": "^13.11.0",
+    "web-push": "^3.6.6",
+    "ws": "^8.14.2",
+    "yup": "^1.3.3",
+    "zod": "^3.22.4"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "coverageDirectory": "coverage",
+    "collectCoverageFrom": [
+      "**/*.js",
+      "!node_modules/**",
+      "!coverage/**",
+      "!logs/**",
+      "!uploads/**"
+    ]
+  },
+  "eslintConfig": {
+    "extends": [
+      "eslint:recommended",
+      "prettier"
+    ],
+    "env": {
+      "node": true,
+      "es2021": true,
+      "jest": true
+    },
+    "parserOptions": {
+      "ecmaVersion": 2021,
+      "sourceType": "module"
+    }
+  },
+  "prettier": {
+    "semi": true,
+    "trailingComma": "es5",
+    "singleQuote": true,
+    "printWidth": 80,
+    "tabWidth": 2
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{css,scss,less}": [
+      "stylelint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS",
+      "pre-push": "npm run test"
+    }
+  },
+  "nodemonConfig": {
+    "watch": [
+      "*.js",
+      "routes/**/*.js",
+      "models/**/*.js",
+      "middleware/**/*.js",
+      "utils/**/*.js",
+      "ai/**/*.js"
+    ],
+    "ignore": [
+      "node_modules",
+      "client",
+      "uploads",
+      "logs",
+      "coverage",
+      "*.test.js"
+    ],
+    "ext": "js,json",
+    "delay": "1000"
+  },
+  "pm2": {
+    "apps": [
+      {
+        "name": "smart-recruitment-main",
+        "script": "enhanced-platform-server.js",
+        "instances": "max",
+        "exec_mode": "cluster",
+        "env": {
+          "NODE_ENV": "development",
+          "PORT": 3000
+        },
+        "env_production": {
+          "NODE_ENV": "production",
+          "PORT": 3000
+        }
+      }
+    ]
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/smart-recruitment/platform.git"
+  },
+  "bugs": {
+    "url": "https://github.com/smart-recruitment/platform/issues"
+  },
+  "homepage": "https://smart-recruitment-platform.com",
+  "funding": {
+    "type": "individual",
+    "url": "https://github.com/sponsors/smart-recruitment"
+  },
+  "contributors": [
+    {
+      "name": "Smart Recruitment Team",
+      "email": "team@smart-recruitment.com",
+      "url": "https://smart-recruitment-platform.com"
+    }
+  ],
+  "maintainers": [
+    {
+      "name": "Platform Team",
+      "email": "maintainers@smart-recruitment.com"
+    }
+  ]
+}

@@ -1,0 +1,291 @@
+[
+  {
+    "id": "1",
+    "title": "مطور واجهات أمامية",
+    "company": "شركة التقنية المتقدمة",
+    "location": "صنعاء، اليمن",
+    "type": "دوام كامل",
+    "salary": "800 - 1200 $",
+    "description": "نبحث عن مطور واجهات أمامية محترف للانضمام لفريقنا في صنعاء",
+    "requirements": [
+      "React.js",
+      "JavaScript",
+      "CSS",
+      "HTML"
+    ],
+    "posted": "2025-07-18T10:00:00Z",
+    "status": "active"
+  },
+  {
+    "id": "2",
+    "title": "مطور خلفي",
+    "company": "مؤسسة الابتكار الرقمي",
+    "location": "عدن، اليمن",
+    "type": "دوام كامل",
+    "salary": "900 - 1500 $",
+    "description": "مطلوب مطور خلفي خبير في Node.js و MongoDB للعمل في عدن",
+    "requirements": [
+      "Node.js",
+      "MongoDB",
+      "Express.js",
+      "API Development"
+    ],
+    "posted": "2025-07-18T09:00:00Z",
+    "status": "active"
+  },
+  {
+    "id": "3",
+    "title": "مصمم UI/UX",
+    "company": "استوديو الإبداع الرقمي",
+    "location": "تعز، اليمن",
+    "type": "دوام جزئي",
+    "salary": "500 - 800 $",
+    "description": "نبحث عن مصمم واجهات مستخدم مبدع في مدينة تعز",
+    "requirements": [
+      "Figma",
+      "Adobe XD",
+      "Photoshop",
+      "UI Design"
+    ],
+    "posted": "2025-07-18T08:00:00Z",
+    "status": "active"
+  },
+  {
+    "id": "4",
+    "title": "مطور Python",
+    "company": "مؤسسة الابتكار الرقمي",
+    "location": "صنعاء، اليمن",
+    "type": "دوام كامل",
+    "salary": "900 - 1400 $",
+    "description": "مطور Python متخصص في تطوير الذكاء الاصطناعي وتحليل البيانات في صنعاء",
+    "requirements": [
+      "Python",
+      "Django",
+      "Machine Learning",
+      "Data Analysis",
+      "SQL"
+    ],
+    "posted": "2025-07-18T07:00:00Z",
+    "status": "active"
+  },
+  {
+    "id": "5",
+    "title": "مختص تسويق رقمي",
+    "company": "شركة التقنية المتقدمة",
+    "location": "المكلا، اليمن",
+    "type": "دوام كامل",
+    "salary": "500 - 800 $",
+    "description": "إدارة حملات التسويق الرقمي وتحليل الأداء في حضرموت",
+    "requirements": [
+      "Digital Marketing",
+      "Google Ads",
+      "Social Media",
+      "Analytics",
+      "SEO"
+    ],
+    "posted": "2025-07-18T06:00:00Z",
+    "status": "active"
+  },
+  {
+    "id": "6",
+    "title": "مطور تطبيقات جوال",
+    "company": "مؤسسة الابتكار الرقمي",
+    "location": "إب، اليمن",
+    "type": "عمل حر",
+    "salary": "700 - 1100 $",
+    "description": "تطوير تطبيقات جوال أصلية ومتعددة المنصات في مدينة إب",
+    "requirements": [
+      "Flutter",
+      "React Native",
+      "iOS",
+      "Android",
+      "Firebase"
+    ],
+    "posted": "2025-07-18T05:00:00Z",
+    "status": "active"
+  },
+  {
+    "id": "7",
+    "title": "مهندس DevOps",
+    "company": "شركة السحابة الذكية",
+    "location": "صنعاء، اليمن",
+    "type": "دوام كامل",
+    "salary": "1200 - 1800 $",
+    "description": "إدارة البنية التحتية السحابية وأتمتة عمليات النشر في مركزنا بصنعاء",
+    "requirements": [
+      "AWS",
+      "Docker",
+      "Kubernetes",
+      "Jenkins",
+      "Terraform",
+      "Linux"
+    ],
+    "posted": "2025-07-27T10:00:00Z",
+    "status": "active",
+    "industry": "تقنية المعلومات",
+    "experienceRequired": "3-5 سنوات"
+  },
+  {
+    "id": "8",
+    "title": "محلل أمن سيبراني",
+    "company": "مركز الأمن الرقمي",
+    "location": "عدن، اليمن",
+    "type": "دوام كامل",
+    "salary": "1000 - 1600 $",
+    "description": "مراقبة وتحليل التهديدات السيبرانية وحماية الأنظمة في عدن",
+    "requirements": [
+      "Cybersecurity",
+      "SIEM",
+      "Penetration Testing",
+      "Network Security",
+      "ISO 27001"
+    ],
+    "posted": "2025-07-27T09:30:00Z",
+    "status": "active",
+    "industry": "تقنية المعلومات",
+    "experienceRequired": "2-4 سنوات"
+  },
+  {
+    "id": "9",
+    "title": "مطور ذكاء اصطناعي",
+    "company": "معهد الذكاء الاصطناعي",
+    "location": "صنعاء، اليمن",
+    "type": "دوام كامل",
+    "salary": "1500 - 2500 $",
+    "description": "تطوير نماذج الذكاء الاصطناعي وتعلم الآلة في اليمن",
+    "requirements": [
+      "Python",
+      "TensorFlow",
+      "PyTorch",
+      "Machine Learning",
+      "Deep Learning",
+      "NLP"
+    ],
+    "posted": "2025-07-27T09:00:00Z",
+    "status": "active",
+    "industry": "تقنية المعلومات",
+    "experienceRequired": "3-6 سنوات"
+  },
+  {
+    "id": "10",
+    "title": "مدير منتجات رقمية",
+    "company": "شركة المنتجات الذكية",
+    "location": "تعز، اليمن",
+    "type": "دوام كامل",
+    "salary": "1300 - 2000 $",
+    "description": "إدارة دورة حياة المنتجات الرقمية من التخطيط إلى الإطلاق في تعز",
+    "requirements": [
+      "Product Management",
+      "Agile",
+      "User Research",
+      "Analytics",
+      "Roadmapping"
+    ],
+    "posted": "2025-07-27T08:30:00Z",
+    "status": "active",
+    "industry": "إدارة المنتجات",
+    "experienceRequired": "4-7 سنوات"
+  },
+  {
+    "id": "11",
+    "title": "مختص تحليل البيانات",
+    "company": "مركز البيانات الذكية",
+    "location": "الحديدة، اليمن",
+    "type": "دوام كامل",
+    "salary": "800 - 1300 $",
+    "description": "تحليل البيانات الضخمة واستخراج الرؤى التجارية في الحديدة",
+    "requirements": [
+      "Python",
+      "SQL",
+      "Tableau",
+      "Power BI",
+      "Statistics",
+      "Excel"
+    ],
+    "posted": "2025-07-27T08:00:00Z",
+    "status": "active",
+    "industry": "تحليل البيانات",
+    "experienceRequired": "2-4 سنوات"
+  },
+  {
+    "id": "12",
+    "title": "مصمم جرافيك",
+    "company": "استوديو الإبداع الرقمي",
+    "location": "ذمار، اليمن",
+    "type": "دوام جزئي",
+    "salary": "400 - 700 $",
+    "description": "تصميم المواد التسويقية والهوية البصرية في ذمار",
+    "requirements": [
+      "Photoshop",
+      "Illustrator",
+      "InDesign",
+      "Branding",
+      "Typography"
+    ],
+    "posted": "2025-07-27T07:30:00Z",
+    "status": "active",
+    "industry": "التصميم والإبداع",
+    "experienceRequired": "1-3 سنوات"
+  },
+  {
+    "id": "13",
+    "title": "مطور Full Stack",
+    "company": "شركة التطوير الشامل",
+    "location": "سيئون، اليمن",
+    "type": "دوام كامل",
+    "salary": "1100 - 1700 $",
+    "description": "تطوير تطبيقات ويب متكاملة في حضرموت الوادي",
+    "requirements": [
+      "React",
+      "Node.js",
+      "MongoDB",
+      "Express",
+      "TypeScript",
+      "Git"
+    ],
+    "posted": "2025-07-27T07:00:00Z",
+    "status": "active",
+    "industry": "تقنية المعلومات",
+    "experienceRequired": "3-5 سنوات"
+  },
+  {
+    "id": "14",
+    "title": "مختص موارد بشرية",
+    "company": "مجموعة الموارد البشرية المتقدمة",
+    "location": "صنعاء، اليمن",
+    "type": "دوام كامل",
+    "salary": "600 - 1000 $",
+    "description": "إدارة عمليات التوظيف وتطوير المواهب في صنعاء",
+    "requirements": [
+      "HR Management",
+      "Recruitment",
+      "HRIS",
+      "Performance Management",
+      "Training"
+    ],
+    "posted": "2025-07-27T06:30:00Z",
+    "status": "active",
+    "industry": "الموارد البشرية",
+    "experienceRequired": "2-5 سنوات"
+  },
+  {
+    "id": "15",
+    "title": "محاسب مالي",
+    "company": "مكتب المحاسبة المتخصص",
+    "location": "مأرب، اليمن",
+    "type": "دوام كامل",
+    "salary": "500 - 900 $",
+    "description": "إعداد التقارير المالية والمحاسبة العامة في مدينة مأرب",
+    "requirements": [
+      "Accounting",
+      "Excel",
+      "QuickBooks",
+      "Financial Reporting",
+      "Tax Preparation"
+    ],
+    "posted": "2025-07-27T06:00:00Z",
+    "status": "active",
+    "industry": "المحاسبة والمالية",
+    "experienceRequired": "2-4 سنوات"
+  }
+]

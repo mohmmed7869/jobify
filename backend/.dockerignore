@@ -1,0 +1,11 @@
+node_modules
+npm-debug.log
+logs
+uploads
+backups
+.env
+.git
+Dockerfile
+docker-compose.yml
+client
+ai-service
