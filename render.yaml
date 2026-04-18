@@ -16,6 +16,8 @@ services:
         generateValue: true
       - key: JWT_EXPIRE
         value: 30d
+      - key: NODE_OPTIONS
+        value: "--max-old-space-size=400"
       - key: OPENAI_API_KEY
         value: "sk-placeholder-not-required-for-local-dev"
       - key: JWT_COOKIE_EXPIRE
@@ -30,3 +32,7 @@ services:
     envVars:
       - key: REACT_APP_API_URL
         sync: false
+      - key: GENERATE_SOURCEMAP
+        value: "false"
+      - key: NODE_OPTIONS
+        value: "--max-old-space-size=400"
