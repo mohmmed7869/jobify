@@ -70,7 +70,7 @@ const Navbar = () => {
               <img 
                 src="/logo.png" 
                 alt="Jobify Logo" 
-                className="w-12 h-12 md:w-16 md:h-16 object-contain group-hover:scale-105 transition-transform duration-500"
+                className="w-8 h-8 md:w-11 md:h-11 object-contain group-hover:scale-105 transition-transform duration-300"
               />
             </Link>
           </div>
