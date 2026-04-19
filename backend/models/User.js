@@ -24,6 +24,16 @@ const userSchema = new mongoose.Schema({
     enum: ['jobseeker', 'employer', 'admin', 'individual', 'company'],
     default: 'jobseeker'
   },
+  isEmailVerified: {
+    type: Boolean,
+    default: false
+  },
+  emailOtp: {
+    type: String
+  },
+  emailOtpExpire: {
+    type: Date
+  },
   profile: {
     avatar: String,
     phone: String,

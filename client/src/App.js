@@ -377,6 +377,12 @@ function App() {
                 </ProtectedRoute>
               } />
 
+              <Route path="/interview/:id" element={
+                <ProtectedRoute>
+                  <VideoInterview />
+                </ProtectedRoute>
+              } />
+
               <Route path="/interview/video" element={
                 <ProtectedRoute>
                   <VideoInterview />

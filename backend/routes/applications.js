@@ -512,7 +512,7 @@ router.post('/:id/schedule-video-interview', protect, authorize('employer', 'com
     }
 
     const roomId = crypto.randomBytes(16).toString('hex');
-    const meetingLink = `/interview/${roomId}`;
+    const meetingLink = `/smart-interview/${roomId}`;
 
     // تحديث البيانات باستخدام findOneAndUpdate لتجنب مشاكل middleware و validation المعقدة
     const updatedApplication = await Application.findOneAndUpdate(

@@ -67,13 +67,11 @@ const Navbar = () => {
           {/* Logo & Brand */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center gap-2 md:gap-3 group">
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-primary to-primary-dark rounded-xl md:rounded-2xl flex items-center justify-center shadow-glow-lg group-hover:rotate-12 transition-transform duration-500 border border-white/20">
-                <span className="text-white font-black text-xl md:text-2xl">ت</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-lg md:text-xl font-black text-themed-text tracking-tight leading-none">Jobify</span>
-                <span className="text-[8px] md:text-[10px] text-primary-600 font-black tracking-widest uppercase mt-1">الجيل الثالث الذكي</span>
-              </div>
+              <img 
+                src="/logo.png" 
+                alt="Jobify Logo" 
+                className="w-12 h-12 md:w-16 md:h-16 object-contain group-hover:scale-105 transition-transform duration-500"
+              />
             </Link>
           </div>
 

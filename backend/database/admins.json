@@ -6,7 +6,9 @@
     "password": "admin123456",
     "phone": "783332292",
     "role": "super_admin",
-    "permissions": ["all"],
+    "permissions": [
+      "all"
+    ],
     "createdAt": "2025-07-18T10:00:00Z",
     "lastLogin": null
   }

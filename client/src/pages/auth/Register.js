@@ -20,9 +20,11 @@ const countries = [
 ];
 
 const Register = () => {
-  const { register } = useAuth();
+  const { register, verifyOtp, resendOtp } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
+  const [otp, setOtp] = useState('');
+  const [timer, setTimer] = useState(0);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -105,8 +107,22 @@ const Register = () => {
 
       const result = await register(data);
       
-      if (result.success) {
-        toast.success('تم إنشاء الحساب بنجاح. يرجى تفعيل بريدك الإلكتروني');
+      if (result.success && result.requiresOtp) {
+        toast.success(result.message);
+        setStep(4);
+        setTimer(60);
+        // بدء المؤقت
+        const interval = setInterval(() => {
+          setTimer((prev) => {
+            if (prev <= 1) {
+              clearInterval(interval);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      } else if (result.success) {
+        toast.success(result.message);
         navigate('/login');
       } else {
         toast.error(result.message || 'خطأ في إنشاء الحساب');
@@ -117,6 +133,44 @@ const Register = () => {
       toast.error(errorMessage);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleVerify = async (e) => {
+    e.preventDefault();
+    if (!otp || otp.length < 6) {
+      toast.error('يرجى إدخال رمز التحقق بالكامل');
+      return;
+    }
+    setLoading(true);
+    const result = await verifyOtp(formData.email, otp);
+    setLoading(false);
+    if (result.success) {
+      toast.success('تم التحقق بنجاح! مرحباً بك');
+      navigate('/jobseeker/dashboard');
+    } else {
+      toast.error(result.message || 'رمز التحقق غير صحيح');
+    }
+  };
+
+  const handleResend = async () => {
+    setLoading(true);
+    const result = await resendOtp(formData.email);
+    setLoading(false);
+    if (result.success) {
+      toast.success(result.message);
+      setTimer(60);
+      const interval = setInterval(() => {
+        setTimer((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      toast.error(result.message || 'فشل إعادة الإرسال');
     }
   };
 
@@ -133,8 +187,8 @@ const Register = () => {
 
       <div className="max-w-2xl w-full relative z-10">
         <div className="text-center mb-6 md:mb-8 px-4">
-          <Link to="/" className="inline-flex items-center justify-center w-12 h-12 md:w-16 md:h-16 bg-primary-600 rounded-2xl shadow-glow-lg mb-4 hover:scale-110 transition-transform duration-500 group">
-            <span className="text-white font-black text-xl md:text-3xl group-hover:rotate-12 transition-transform">ت</span>
+          <Link to="/" className="inline-flex items-center justify-center mb-4 md:mb-6 hover:scale-110 transition-transform duration-500 group">
+            <img src="/logo.png" alt="Jobify Logo" className="w-14 h-14 md:w-20 md:h-20 object-contain group-hover:scale-105 transition-transform duration-300" />
           </Link>
           <h2 className="text-2xl md:text-4xl font-black themed-text tracking-tight">إنشاء حساب جديد</h2>
           <p className="themed-text-sec font-bold mt-2 opacity-80 text-xs md:text-base">انضم إلى أكبر منصة توظيف ذكية في اليمن</p>
@@ -145,11 +199,11 @@ const Register = () => {
           <div className="h-1 md:h-2 w-full bg-themed-bg-ter flex">
             <div 
               className="h-full bg-primary-600 shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)] transition-all duration-700 ease-out" 
-              style={{ width: `${(step / 3) * 100}%` }}
+              style={{ width: `${(step / (step === 4 ? 4 : 3)) * 100}%` }}
             ></div>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-5 sm:p-8 md:p-12">
+          <form onSubmit={step === 4 ? handleVerify : handleSubmit} className="p-5 sm:p-8 md:p-12">
             <AnimatePresence mode="wait">
               {step === 1 && (
                 <motion.div 
@@ -409,6 +463,54 @@ const Register = () => {
                       ) : (
                         <>إنشاء الحساب <FiShield className="text-lg md:text-xl" /></>
                       )}
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+              {step === 4 && (
+                <motion.div 
+                  key="step4"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="space-y-6 md:space-y-8"
+                >
+                  <div className="text-center mb-6">
+                    <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-primary-50">
+                      <FiLock className="text-3xl text-primary-600" />
+                    </div>
+                    <h3 className="text-xl md:text-2xl font-black themed-text">أدخل رمز التحقق</h3>
+                    <p className="text-sm font-bold themed-text-sec mt-2">
+                      تم إرسال رمز تحقق مكون من 6 أرقام إلى بريدك الإلكتروني<br />
+                      <span className="text-primary-600" dir="ltr">{formData.email}</span>
+                    </p>
+                  </div>
+
+                  <div className="flex justify-center" dir="ltr">
+                    <input 
+                      type="text" 
+                      maxLength="6"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, ''))}
+                      className="formal-input w-48 h-16 text-center text-3xl tracking-[0.5em] font-black rounded-2xl focus:ring-primary-500/50" 
+                      placeholder="------"
+                      autoFocus
+                    />
+                  </div>
+
+                  <div className="flex flex-col items-center gap-4 pt-4">
+                    <button type="submit" disabled={loading || otp.length !== 6} className="w-full btn-formal-primary shimmer-sweep py-4 text-lg h-14 flex items-center justify-center gap-2 rounded-2xl disabled:opacity-50">
+                      {loading ? 'جاري التحقق...' : 'تأكيد الحساب'}
+                    </button>
+                    
+                    <button 
+                      type="button" 
+                      disabled={timer > 0 || loading} 
+                      onClick={handleResend}
+                      className="text-sm font-bold text-themed-text-ter hover:text-primary-600 disabled:opacity-50 transition-colors"
+                    >
+                      {timer > 0 ? `إعادة الإرسال بعد ${timer} ثانية` : 'لم يصلك الرمز؟ أعد الإرسال'}
                     </button>
                   </div>
                 </motion.div>

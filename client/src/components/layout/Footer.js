@@ -19,10 +19,7 @@ const Footer = () => {
           {/* Brand Section */}
           <div className="col-span-1 sm:col-span-2 lg:col-span-1">
             <Link to="/" className="flex items-center gap-3 mb-6 md:mb-8 group">
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-primary to-primary-dark rounded-xl md:rounded-2xl flex items-center justify-center shadow-glow-lg border border-white/20">
-                <span className="text-white font-black text-xl md:text-2xl">ت</span>
-              </div>
-              <span className="text-xl md:text-2xl font-black tracking-tight text-themed-text">Jobify</span>
+              <img src="/logo.png" alt="Jobify Logo" className="w-16 h-16 md:w-20 md:h-20 object-contain group-hover:scale-105 transition-transform duration-300" />
             </Link>
             <p className="text-themed-text-sec font-medium leading-relaxed mb-6 md:mb-8 text-sm md:text-base max-w-md">
               الجيل الثالث من منصات التوظيف الذكية، نستخدم أقوى تقنيات الذكاء الاصطناعي لربط العقول المبدعة بأفضل بيئات العمل العالمية.

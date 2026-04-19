@@ -167,7 +167,11 @@ router.post('/register', upload.fields([
       };
     }
 
-    // إنشاء رمز التحقق أولاً
+    // إنشاء كود التحقق OTP (6 أرقام)
+    const emailOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    const emailOtpExpire = new Date(Date.now() + 10 * 60 * 1000); // 10 دقائق صالحة
+
+    // إنشاء رمز التحقق العادي (للتوافق القديم إن وجد)
     const verificationToken = crypto.randomBytes(20).toString('hex');
     const hashedVerificationToken = crypto
       .createHash('sha256')
@@ -184,6 +188,9 @@ router.post('/register', upload.fields([
       employerProfile: employerData,
       isActive: true,
       isVerified: false,
+      isEmailVerified: false,
+      emailOtp,
+      emailOtpExpire,
       verificationToken: hashedVerificationToken
     });
 
@@ -196,36 +203,25 @@ router.post('/register', upload.fields([
       });
     }
 
-    // إرسال بريد التحقق
-    const verifyUrl = `${req.protocol}://${req.get('host')}/api/auth/verify/${verificationToken}`;
-    
-    const message = `
-      مرحباً ${name}،
-      
-      شكراً لتسجيلك في Jobify!
-      
-      يرجى النقر على الرابط التالي للتحقق من حسابك:
-      ${verifyUrl}
-      
-      إذا لم تقم بإنشاء هذا الحساب، يرجى تجاهل هذا البريد.
-    `;
-
+    // إرسال كود التحقق
     try {
-      await sendEmail({
-        email: user.email,
-        subject: 'تحقق من حسابك - Jobify',
-        message
-      });
+      if (sendEmail.sendOtpEmail) {
+        await sendEmail.sendOtpEmail(user, emailOtp);
+      }
 
       res.status(201).json({
         success: true,
-        message: 'تم إنشاء الحساب بنجاح. يرجى التحقق من بريدك الإلكتروني'
+        requiresOtp: true,
+        email: user.email,
+        message: 'تم إنشاء الحساب بنجاح. يرجى إدخال رمز التحقق (OTP) المرسل لبريدك الإلكتروني'
       });
     } catch (err) {
       console.error('Email error:', err);
       return res.status(201).json({
         success: true,
-        message: 'تم إنشاء الحساب بنجاح. (فشل إرسال بريد التحقق)'
+        requiresOtp: true,
+        email: user.email,
+        message: 'تم إنشاء الحساب بنجاح. (فشل إرسال بريد التحقق، قم بإعادة إرساله لاحقاً)'
       });
     }
   } catch (error) {
@@ -286,6 +282,28 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({
         success: false,
         message: 'الحساب غير نشط'
+      });
+    }
+
+    // السماح بدخول الحسابات التجريبية أو الحسابات القديمة المسجلة قبل التحديث
+    if (!user.isEmailVerified && user.isEmailVerified !== undefined && user.role !== 'admin' && user.role !== 'super_admin') {
+      try {
+        // إعادة توليد كود التحقق إذا لم يكن الحساب موثق
+        const emailOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        user.emailOtp = emailOtp;
+        user.emailOtpExpire = new Date(Date.now() + 10 * 60 * 1000);
+        await user.save();
+        
+        if (sendEmail.sendOtpEmail) {
+          await sendEmail.sendOtpEmail(user, emailOtp);
+        }
+      } catch (e) { console.error('Error generating login OTP', e); }
+
+      return res.status(403).json({
+        success: false,
+        requiresOtp: true,
+        email: user.email,
+        message: 'الحساب غير مفعل حتى الآن. يرجى إدخال كود التحقق المرسل لإيميلك.'
       });
     }
 
@@ -505,7 +523,7 @@ router.put('/resetpassword/:resettoken', async (req, res) => {
   }
 });
 
-// @desc    التحقق من البريد الإلكتروني
+// @desc    التحقق من البريد الإلكتروني القديم (عبر الرابط)
 // @route   GET /api/auth/verify/:token
 // @access  Public
 router.get('/verify/:token', async (req, res) => {
@@ -525,6 +543,7 @@ router.get('/verify/:token', async (req, res) => {
     }
 
     user.isVerified = true;
+    user.isEmailVerified = true;
     user.verificationToken = undefined;
     await user.save({ validateBeforeSave: false });
 
@@ -536,6 +555,82 @@ router.get('/verify/:token', async (req, res) => {
       success: false,
       message: error.message || 'خطأ في الخادم (المصادقة)'
     });
+  }
+});
+
+// @desc    التحقق من البريد الإلكتروني عبر رمز (OTP verification)
+// @route   POST /api/auth/verify-otp
+// @access  Public
+router.post('/verify-otp', async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+      return res.status(400).json({ success: false, message: 'الرجاء إدخال البريد الإلكتروني ورمز التحقق' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'مستخدم غير موجود' });
+    }
+
+    if (user.isEmailVerified) {
+      return res.status(400).json({ success: false, message: 'الحساب مفعل مسبقاً' });
+    }
+
+    if (!user.emailOtp || user.emailOtp !== otp) {
+      return res.status(400).json({ success: false, message: 'رمز التحقق غير صحيح' });
+    }
+
+    if (user.emailOtpExpire < new Date()) {
+      return res.status(400).json({ success: false, message: 'رمز التحقق منتهي الصلاحية' });
+    }
+
+    user.isVerified = true;
+    user.isEmailVerified = true;
+    user.emailOtp = undefined;
+    user.emailOtpExpire = undefined;
+    user.verificationToken = undefined;
+    await user.save();
+
+    sendTokenResponse(user, 200, res);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'حدث خطأ أثناء معالجة الطلب' });
+  }
+});
+
+// @desc    إعادة إرسال كود التحقق
+// @route   POST /api/auth/resend-otp
+// @access  Public
+router.post('/resend-otp', rateLimit(15 * 60 * 1000, 3), async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'الرجاء إدخال البريد الإلكتروني' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'مستخدم غير موجود' });
+    }
+
+    if (user.isEmailVerified) {
+      return res.status(400).json({ success: false, message: 'الحساب مفعل مسبقاً' });
+    }
+
+    const emailOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    user.emailOtp = emailOtp;
+    user.emailOtpExpire = new Date(Date.now() + 10 * 60 * 1000);
+    await user.save();
+
+    if (sendEmail.sendOtpEmail) {
+      await sendEmail.sendOtpEmail(user, emailOtp);
+    }
+
+    res.status(200).json({ success: true, message: 'تم إرسال كود التحقق (OTP) مجدداً بنجاح' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'حدث خطأ أثناء إرسال الكود' });
   }
 });
 

@@ -211,10 +211,43 @@ ${job.description.substring(0, 200)}...
   });
 };
 
+// إرسال كود التحقق OTP
+const sendOtpEmail = async (user, otp) => {
+  const otpMessage = `
+مرحباً ${user.name},
+
+رمز التحقق الخاص بك هو:
+🎯 ${otp}
+
+هذا الرمز صالح لمدة 10 دقائق فقط.
+يرجى عدم مشاركة هذا الرمز مع أي شخص.
+
+فريق Jobify
+  `;
+
+  return await sendEmail({
+    email: user.email,
+    subject: `رمز التحقق الخاص بك (OTP) 🔒`,
+    message: otpMessage,
+    html: `
+      <div style="font-family: Arial, sans-serif; text-align: center; padding: 20px;">
+        <h2>مرحباً ${user.name}</h2>
+        <p>رمز التحقق الخاص بك لإتمام عملية التسجيل هو:</p>
+        <div style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #2563eb; background: #f3f4f6; padding: 10px 20px; border-radius: 8px; display: inline-block; margin: 20px 0;">
+          ${otp}
+        </div>
+        <p style="color: #6b7280;">هذا الرمز صالح لمدة 10 دقائق فقط.</p>
+        <p style="color: #ef4444; font-size: 12px;">يرجى عدم مشاركة هذا الرمز مع أي شخص.</p>
+      </div>
+    `
+  });
+};
+
 module.exports = {
   sendEmail,
   sendWelcomeEmail,
   sendProfileCompletionReminder,
   sendWeeklyReport,
-  sendJobMatchNotification
+  sendJobMatchNotification,
+  sendOtpEmail
 };

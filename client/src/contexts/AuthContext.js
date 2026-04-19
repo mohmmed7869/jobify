@@ -105,6 +105,10 @@ export const AuthProvider = ({ children }) => {
       return { success: true };
     } catch (error) {
       console.error('Detailed login error:', error);
+      if (error.response?.data?.requiresOtp) {
+        dispatch({ type: 'SET_LOADING', payload: false });
+        return { success: false, requiresOtp: true, email: error.response.data.email, message: error.response.data.message };
+      }
       const message = error.response?.data?.message || 'خطأ في تسجيل الدخول';
       dispatch({ type: 'SET_ERROR', payload: message });
       return { success: false, message };
@@ -116,16 +120,42 @@ export const AuthProvider = ({ children }) => {
       dispatch({ type: 'SET_LOADING', payload: true });
       const response = await axios.post('/api/auth/register', userData);
       
-      // لا نقوم بتسجيل الدخول تلقائياً هنا لأننا نريد من المستخدم تفعيل البريد أولاً
-      // وإذا أردنا تسجيل الدخول التلقائي نفعل السطرين التاليين:
-      // dispatch({ type: 'SET_TOKEN', payload: response.data.token });
-      // dispatch({ type: 'SET_USER', payload: response.data.data });
-      
       dispatch({ type: 'SET_LOADING', payload: false });
+      
+      if (response.data.requiresOtp) {
+        return { success: true, requiresOtp: true, email: response.data.email, message: response.data.message };
+      }
+
       return { success: true, message: response.data.message };
     } catch (error) {
       const message = error.response?.data?.message || 'خطأ في التسجيل';
       dispatch({ type: 'SET_ERROR', payload: message });
+      return { success: false, message };
+    }
+  };
+
+  const verifyOtp = async (email, otp) => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      const response = await axios.post('/api/auth/verify-otp', { email, otp });
+      
+      dispatch({ type: 'SET_TOKEN', payload: response.data.token });
+      dispatch({ type: 'SET_USER', payload: response.data.data });
+      
+      return { success: true };
+    } catch (error) {
+      dispatch({ type: 'SET_LOADING', payload: false });
+      const message = error.response?.data?.message || 'رمز التحقق غير صحيح';
+      return { success: false, message };
+    }
+  };
+
+  const resendOtp = async (email) => {
+    try {
+      const response = await axios.post('/api/auth/resend-otp', { email });
+      return { success: true, message: response.data.message };
+    } catch (error) {
+      const message = error.response?.data?.message || 'فشل إعادة الإرسال';
       return { success: false, message };
     }
   };
@@ -153,6 +183,8 @@ export const AuthProvider = ({ children }) => {
     error: state.error,
     login,
     register,
+    verifyOtp,
+    resendOtp,
     logout,
     clearError,
     setToken,
