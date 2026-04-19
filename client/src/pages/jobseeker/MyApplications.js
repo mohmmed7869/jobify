@@ -9,6 +9,7 @@ import {
 } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
+import { getFileUrl } from '../../utils/fileUrl';
 
 const MyApplications = () => {
   const [applications, setApplications] = useState([]);
@@ -225,7 +226,7 @@ const MyApplications = () => {
                         className="flex flex-col gap-3 md:gap-4 bg-primary-500/5 p-4 md:p-5 rounded-xl md:rounded-2xl border border-primary-500/10 mb-4"
                       >
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2 md:gap-3 text-right">
+                          <div className="flex items-center gap-3 text-right">
                             <div className="p-1.5 bg-primary-600 text-white rounded-lg shadow-glow-sm">
                               <FiCpu size={12} className="md:w-[14px] md:h-[14px]" />
                             </div>
@@ -362,4 +363,3 @@ const MyApplications = () => {
 };
 
 export default MyApplications;
-
