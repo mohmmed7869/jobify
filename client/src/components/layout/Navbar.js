@@ -208,12 +208,15 @@ const Navbar = () => {
           </div>
 
           {/* Mobile menu button */}
-          <div className="md:hidden flex items-center gap-3">
+          <div className="md:hidden flex items-center gap-2">
             {user && (
-              <Link to="/chat" className="relative w-10 h-10 flex items-center justify-center text-themed-text bg-themed-bg-ter rounded-xl border border-primary-100/20 shadow-sm">
-                <FiMessageCircle size={20} />
-                <span className="absolute -top-1 -left-1 w-4 h-4 bg-rose-500 rounded-full border-2 border-white"></span>
-              </Link>
+              <>
+                <NotificationDropdown socket={socket} />
+                <Link to="/chat" className="relative w-10 h-10 flex items-center justify-center text-themed-text hover:text-primary hover:bg-primary-500/10 rounded-xl transition-all" title="الرسائل">
+                  <FiMessageCircle size={22} />
+                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full border border-white animate-pulse"></span>
+                </Link>
+              </>
             )}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
