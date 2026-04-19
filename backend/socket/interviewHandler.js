@@ -67,19 +67,21 @@ const setupInterviewSocket = (socket, io) => {
     
     // Chat message
     socket.on('chat-message', (data) => {
-      const { message, roomId } = data;
+      const { message, roomId: msgRoomId, userName } = data;
       const user = users.get(socket.id);
-      if (user && rooms.has(roomId)) {
+      const targetRoom = msgRoomId || socket.roomId;
+      if (user && rooms.has(targetRoom)) {
         const chatMessage = {
           id: Date.now(),
           userId: user.userId,
           userInfo: user.userInfo,
-          userName: user.userInfo?.name,
+          userName: user.userInfo?.name || userName || 'مستخدم',
           message,
           timestamp: new Date()
         };
-        rooms.get(roomId).chatMessages.push(chatMessage);
-        io.to(roomId).emit('chat-message', chatMessage);
+        rooms.get(targetRoom).chatMessages.push(chatMessage);
+        // أرسل للآخرين فقط (المُرسِل يُضيفها محلياً)
+        socket.to(targetRoom).emit('chat-message', chatMessage);
       }
     });
 
