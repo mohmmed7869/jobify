@@ -176,13 +176,13 @@ const Chat = () => {
   };
 
   return (
-    <div className="h-screen mesh-bg pt-16 sm:pt-20 pb-0 overflow-hidden flex flex-col relative" dir="rtl">
+    <div className="h-[100dvh] mesh-bg pt-14 md:pt-[72px] pb-0 overflow-hidden flex flex-col relative" dir="rtl">
       <div className="blur-circle w-[300px] h-[300px] bg-primary-500/5 top-20 right-0"></div>
       <div className="blur-circle w-[250px] h-[250px] bg-accent/5 bottom-10 left-0"></div>
       
-      <div className="flex-1 premium-container max-w-7xl h-full flex gap-0 sm:gap-4 lg:gap-6 relative py-4 sm:py-6 overflow-hidden z-10">
+      <div className="flex-1 w-full max-w-7xl mx-auto h-full flex gap-0 sm:gap-4 lg:gap-6 relative md:py-6 overflow-hidden z-10 md:px-4 lg:px-8">
         {/* Sidebar */}
-        <div className={`w-full md:w-80 lg:w-96 premium-glass-panel overflow-hidden flex flex-col animate-slide-up transition-all duration-500 rounded-[2rem] shadow-premium ${
+        <div className={`w-full md:w-80 lg:w-96 md:premium-glass-panel bg-white/40 md:bg-white/10 overflow-hidden flex flex-col animate-slide-up transition-all duration-500 md:rounded-[2rem] shadow-none md:shadow-premium ${
           mobileView === 'chat' ? 'hidden md:flex' : 'flex'
         }`}>
           <div className="p-6 sm:p-8 border-b border-primary-100/20 bg-white/40 backdrop-blur-2xl">
@@ -289,7 +289,7 @@ const Chat = () => {
         </div>
 
         {/* Chat Main Area */}
-        <div className={`flex-1 premium-glass-panel overflow-hidden flex flex-col animate-slide-up transition-all duration-700 rounded-[2.5rem] shadow-premium ${
+        <div className={`flex-1 md:premium-glass-panel bg-white/60 md:bg-white/10 overflow-hidden flex flex-col animate-slide-up transition-all duration-700 md:rounded-[2.5rem] shadow-none md:shadow-premium ${
           mobileView === 'list' ? 'hidden md:flex' : 'flex'
         }`} style={{ animationDelay: '0.1s' }}>
           {activeChat ? (
@@ -298,8 +298,8 @@ const Chat = () => {
               <div className="p-4 sm:p-7 bg-white/60 border-b border-primary-100/10 flex justify-between items-center backdrop-blur-2xl relative z-10 shadow-sm">
                 <div className="flex items-center gap-4 sm:gap-6 min-w-0">
                   <button 
-                    onClick={() => setMobileView('list')}
-                    className="md:hidden p-2.5 text-slate-500 hover:bg-primary-50 rounded-xl transition-all border border-transparent hover:border-primary-100"
+                    onClick={() => { setMobileView('list'); setActiveChat(null); }}
+                    className="md:hidden p-2 text-slate-500 hover:bg-primary-50 rounded-xl transition-all border border-transparent hover:border-primary-100"
                   >
                     <FiArrowRight size={24} className="rotate-0" />
                   </button>
@@ -371,18 +371,18 @@ const Chat = () => {
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                       placeholder="اكتب رسالتك بذكاء..."
-                      className="w-full premium-input bg-white py-4 sm:py-5 px-6 sm:px-8 rounded-2xl sm:rounded-3xl border-primary-100/20 text-sm sm:text-lg focus:shadow-glow-primary transition-all duration-500"
+                      className="w-full premium-input bg-white py-3 sm:py-5 px-5 sm:px-8 rounded-2xl sm:rounded-3xl border-primary-100/20 text-sm sm:text-lg focus:shadow-glow-primary transition-all duration-500"
                     />
-                    <button type="button" className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary-500 p-2 rounded-lg transition-all">
-                      <FiSmile size={22} />
+                    <button type="button" className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary-500 p-2 rounded-lg transition-all">
+                      <FiSmile size={20} className="sm:w-[22px] sm:h-[22px]" />
                     </button>
                   </div>
                   <button
                     type="submit"
                     disabled={!newMessage.trim()}
-                    className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center bg-gradient-to-r from-primary-600 to-accent text-white rounded-2xl sm:rounded-3xl shadow-glow-lg magnetic-lift hover:scale-110 active:scale-95 disabled:opacity-50 disabled:grayscale transition-all shrink-0"
+                    className="w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center bg-gradient-to-r from-primary-600 to-accent text-white rounded-xl sm:rounded-3xl shadow-glow-lg magnetic-lift hover:scale-110 active:scale-95 disabled:opacity-50 disabled:grayscale transition-all shrink-0"
                   >
-                    <FiSend size={24} className="rotate-180" />
+                    <FiSend size={20} className="sm:w-[24px] sm:h-[24px] rotate-180" />
                   </button>
                 </form>
               </div>
