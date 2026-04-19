@@ -12,12 +12,6 @@ const Login = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  
-  // OTP States
-  const [showOtpRequired, setShowOtpRequired] = useState(false);
-  const [otpMail, setOtpMail] = useState('');
-  const [otp, setOtp] = useState('');
-  const [timer, setTimer] = useState(0);
 
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -70,43 +64,7 @@ const Login = () => {
     }
   };
 
-  const handleVerify = async (e) => {
-    e.preventDefault();
-    if (!otp || otp.length < 6) {
-      toast.error('يرجى إدخال رمز التحقق بالكامل');
-      return;
-    }
-    setLoading(true);
-    const result = await verifyOtp(otpMail, otp);
-    setLoading(false);
-    if (result.success) {
-      toast.success('تم التحقق وتسجيل الدخول بنجاح!');
-      navigate('/');
-    } else {
-      toast.error(result.message || 'رمز التحقق غير صحيح');
-    }
-  };
 
-  const handleResend = async () => {
-    setLoading(true);
-    const result = await resendOtp(otpMail);
-    setLoading(false);
-    if (result.success) {
-      toast.success(result.message);
-      setTimer(60);
-      const interval = setInterval(() => {
-        setTimer((prev) => {
-          if (prev <= 1) {
-            clearInterval(interval);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else {
-      toast.error(result.message || 'فشل إعادة الإرسال');
-    }
-  };
 
   return (
     <div className="min-h-screen mesh-gradient-vibrant flex items-center justify-center py-6 md:py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden" dir="rtl">
@@ -122,14 +80,13 @@ const Login = () => {
                 <img src="/logo.png" alt="Jobify Logo" className="w-16 h-16 md:w-24 md:h-24 object-contain group-hover:scale-105 transition-transform duration-300" />
               </Link>
               <h2 className="text-2xl md:text-4xl font-black themed-text tracking-tight mb-2 md:mb-3">
-                {showOtpRequired ? 'تفعيل الحساب' : <>مرحباً بك <span className="text-primary-600">مجدداً</span></>}
+                مرحباً بك <span className="text-primary-600">مجدداً</span>
               </h2>
               <p className="themed-text-sec font-bold opacity-80 text-xs md:text-base px-2">
-                {showOtpRequired ? `أدخل الرمز المرسل إلى: ${otpMail}` : 'سجل دخولك للوصول إلى أفضل الفرص الوظيفية'}
+                سجل دخولك للوصول إلى أفضل الفرص الوظيفية
               </p>
             </div>
             
-            {!showOtpRequired ? (
             <form className="space-y-4 md:space-y-6" onSubmit={handleSubmit}>
               <div className="space-y-3 md:space-y-5">
                 <div className="space-y-1">
@@ -231,39 +188,8 @@ const Login = () => {
                 <SocialButton icon={<FiFacebook className="text-[#1877F2]" />} onClick={() => handleSocialLogin('facebook')} />
               </div>
             </form>
-            ) : (
-            <form className="space-y-6 md:space-y-8" onSubmit={handleVerify}>
-              <div className="flex justify-center" dir="ltr">
-                <input 
-                  type="text" 
-                  maxLength="6"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, ''))}
-                  className="formal-input w-48 h-16 text-center text-3xl tracking-[0.5em] font-black rounded-2xl focus:ring-primary-500/50" 
-                  placeholder="------"
-                  autoFocus
-                />
-              </div>
-
-              <div className="flex flex-col items-center gap-4 pt-4">
-                <button type="submit" disabled={loading || otp.length !== 6} className="w-full btn-formal-primary shimmer-sweep py-4 text-lg h-14 flex items-center justify-center gap-2 rounded-2xl disabled:opacity-50">
-                  {loading ? 'جاري التحقق...' : 'تأكيد الحساب'}
-                </button>
-                
-                <button 
-                  type="button" 
-                  disabled={timer > 0 || loading} 
-                  onClick={handleResend}
-                  className="text-sm font-bold text-themed-text-ter hover:text-primary-600 disabled:opacity-50 transition-colors"
-                >
-                  {timer > 0 ? `إعادة الإرسال بعد ${timer} ثانية` : 'لم يصلك الرمز؟ أعد الإرسال'}
-                </button>
-              </div>
-            </form>
-            )}
           </div>
           
-          {!showOtpRequired && (
           <div className="px-5 md:px-8 py-4 md:py-6 bg-primary-500/5 border-t themed-border text-center">
             <p className="themed-text-sec font-bold text-[11px] md:text-sm">
               ليس لديك حساب؟{' '}
@@ -276,7 +202,6 @@ const Login = () => {
               </Link>
             </p>
           </div>
-          )}
         </div>
       </div>
     </div>
