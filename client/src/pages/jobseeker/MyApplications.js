@@ -188,19 +188,19 @@ const MyApplications = () => {
                     <div className="flex items-center md:items-start gap-4 md:gap-6 mb-6 md:mb-8 text-right">
                       <motion.div 
                         whileHover={{ rotate: 5 }}
-                        className="w-14 h-14 md:w-20 md:h-20 bg-white rounded-xl md:rounded-[2rem] border border-slate-50 flex items-center justify-center text-primary-600 font-black text-xl md:text-3xl shadow-premium-sm group-hover:shadow-glow transition-all duration-500 shrink-0"
+                        className="w-14 h-14 md:w-20 md:h-20 bg-white rounded-xl md:rounded-[2rem] border border-slate-50 flex items-center justify-center text-primary-600 font-black text-xl md:text-3xl shadow-premium-sm group-hover:shadow-glow transition-all duration-500 shrink-0 overflow-hidden"
                       >
-                        {(app.job?.companyLogo || app.job?.company?.profile?.avatar || app.job?.company?.employerProfile?.companyLogo) ? (
+                        {app.job?.companyLogo || app.job?.company?.profile?.avatar || app.job?.company?.employerProfile?.companyLogo ? (
                           <img 
                             src={getFileUrl(app.job?.companyLogo || app.job?.company?.employerProfile?.companyLogo || app.job?.company?.profile?.avatar)} 
                             alt={app.job?.companyName} 
-                            className="w-full h-full object-cover rounded-xl md:rounded-[2rem]" 
-                            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
+                            className="w-full h-full object-cover"
+                            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                           />
                         ) : null}
-                        <span style={{ display: (app.job?.companyLogo || app.job?.company?.profile?.avatar || app.job?.company?.employerProfile?.companyLogo) ? 'none' : 'block' }}>
+                        <div className="w-full h-full items-center justify-center bg-primary-50" style={{ display: (app.job?.companyLogo || app.job?.company?.profile?.avatar || app.job?.company?.employerProfile?.companyLogo) ? 'none' : 'flex' }}>
                           {app.job?.companyName?.charAt(0)}
-                        </span>
+                        </div>
                       </motion.div>
                       <div className="min-w-0">
                         <h3 className="text-lg md:text-2xl font-black themed-text group-hover:text-primary-600 transition-colors mb-1 md:mb-2 truncate">

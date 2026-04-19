@@ -13,7 +13,18 @@ export const getFileUrl = (path) => {
   
   // Ensure path doesn't start with / if baseUrl ends with it, or vice versa
   // Also normalize backslashes (Windows) to forward slashes (Web)
-  const normalizedPath = (path.startsWith('/') ? path.substring(1) : path).replace(/\\/g, '/');
+  // Remove 'backend/' prefix if it exists (common issue when running from root)
+  let normalizedPath = path.replace(/\\/g, '/');
+  if (normalizedPath.startsWith('backend/')) {
+    normalizedPath = normalizedPath.substring(8);
+  } else if (normalizedPath.startsWith('/backend/')) {
+    normalizedPath = normalizedPath.substring(9);
+  }
+  
+  if (normalizedPath.startsWith('/')) {
+    normalizedPath = normalizedPath.substring(1);
+  }
+  
   const normalizedBase = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
   
   return `${normalizedBase}${normalizedPath}`;

@@ -46,17 +46,25 @@ const JobCard = ({ job }) => {
               whileHover={{ rotate: 10, scale: 1.1 }}
               className="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-[1.5rem] sm:rounded-[1.8rem] flex items-center justify-center text-primary-600 font-black text-2xl sm:text-3xl shadow-premium border border-slate-50 relative shrink-0 overflow-hidden self-start"
             >
-              {(job.companyLogo || job.company?.profile?.avatar || job.company?.employerProfile?.companyLogo) ? (
+              {(job.companyLogo || job.company?.employerProfile?.companyLogo || job.company?.profile?.avatar) ? (
                 <img
                   src={getFileUrl(job.companyLogo || job.company?.employerProfile?.companyLogo || job.company?.profile?.avatar)}
                   alt={job.companyName}
                   className="w-full h-full object-cover"
-                  onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                  style={{ display: 'block' }}
+                  onError={(e) => { 
+                    e.target.style.display = 'none'; 
+                    const fallback = e.target.parentElement.querySelector('.logo-fallback');
+                    if (fallback) fallback.style.display = 'flex';
+                  }}
                 />
               ) : null}
-              <span className="relative z-10" style={{ display: (job.companyLogo || job.company?.profile?.avatar || job.company?.employerProfile?.companyLogo) ? 'none' : 'flex' }}>
+              <div 
+                className="logo-fallback relative z-10 w-full h-full flex items-center justify-center bg-primary-50 text-primary-600" 
+                style={{ display: (job.companyLogo || job.company?.employerProfile?.companyLogo || job.company?.profile?.avatar) ? 'none' : 'flex' }}
+              >
                 {job.companyName ? job.companyName.charAt(0).toUpperCase() : 'J'}
-              </span>
+              </div>
             </motion.div>
             
             <div className="space-y-2 sm:space-y-3 min-w-0">
