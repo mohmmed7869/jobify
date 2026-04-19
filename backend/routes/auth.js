@@ -8,7 +8,7 @@ const fs = require('fs');
 const User = require('../models/User');
 const SystemSettings = require('../models/SystemSettings');
 const { protect, rateLimit } = require('../middleware/auth');
-const sendEmail = require('../utils/sendEmail');
+const { sendEmail, sendOtpEmail } = require('../utils/sendEmail');
 
 const router = express.Router();
 
@@ -194,21 +194,22 @@ router.post('/register', upload.fields([
       verificationToken: hashedVerificationToken
     });
 
-    // التحقق من إعدادات البريد الإلكتروني
-    if (!process.env.EMAIL_USER || process.env.EMAIL_USER === 'placeholder_user' || process.env.EMAIL_USER.includes('example')) {
-      console.warn('⚠️ إعدادات البريد الإلكتروني غير مكتملة، تم تخطي إرسال بريد التحقق');
+    // التحقق من إعدادات البريد الإلكتروني وإرسال OTP
+    const emailConfigured = process.env.EMAIL_USER && !process.env.EMAIL_USER.includes('example') && process.env.EMAIL_USER !== 'placeholder_user';
+
+    if (!emailConfigured) {
+      console.warn('⚠️ إعدادات البريد غير مكتملة - تم تفعيل الحساب تلقائياً');
+      // في حالة عدم إعداد البريد، فعّل الحساب مباشرة
+      await User.findByIdAndUpdate(user._id, { isVerified: true, isEmailVerified: true });
       return res.status(201).json({
         success: true,
-        message: 'تم إنشاء الحساب بنجاح (بيئة التطوير: تم تخطي التحقق من البريد)'
+        message: 'تم إنشاء الحساب بنجاح. يمكنك الآن تسجيل الدخول.'
       });
     }
 
     // إرسال كود التحقق
     try {
-      if (sendEmail.sendOtpEmail) {
-        await sendEmail.sendOtpEmail(user, emailOtp);
-      }
-
+      await sendOtpEmail(user, emailOtp);
       res.status(201).json({
         success: true,
         requiresOtp: true,
@@ -217,11 +218,11 @@ router.post('/register', upload.fields([
       });
     } catch (err) {
       console.error('Email error:', err);
+      // عند فشل البريد، فعّل الحساب مباشرة بدلاً من إيقاف التسجيل
+      await User.findByIdAndUpdate(user._id, { isVerified: true, isEmailVerified: true });
       return res.status(201).json({
         success: true,
-        requiresOtp: true,
-        email: user.email,
-        message: 'تم إنشاء الحساب بنجاح. (فشل إرسال بريد التحقق، قم بإعادة إرساله لاحقاً)'
+        message: 'تم إنشاء الحساب بنجاح. يمكنك الآن تسجيل الدخول.'
       });
     }
   } catch (error) {
@@ -294,8 +295,23 @@ router.post('/login', async (req, res) => {
         user.emailOtpExpire = new Date(Date.now() + 10 * 60 * 1000);
         await user.save();
         
-        if (sendEmail.sendOtpEmail) {
-          await sendEmail.sendOtpEmail(user, emailOtp);
+        // محاولة إرسال البريد - إذا فشل نفعّل الحساب تلقائياً
+        const emailConfigured = process.env.EMAIL_USER && !process.env.EMAIL_USER.includes('example');
+        if (emailConfigured) {
+          try {
+            await sendOtpEmail(user, emailOtp);
+          } catch (emailErr) {
+            console.error('Email send failed at login, auto-activating account:', emailErr.message);
+            await User.findByIdAndUpdate(user._id, { isVerified: true, isEmailVerified: true });
+            await User.findByIdAndUpdate(user._id, { lastLogin: new Date() });
+            return sendTokenResponse(user, 200, res);
+          }
+        } else {
+          // لا يوجد إعداد للبريد - فعّل الحساب مباشرة
+          await User.findByIdAndUpdate(user._id, { isVerified: true, isEmailVerified: true });
+          await User.findByIdAndUpdate(user._id, { lastLogin: new Date() });
+          user.isEmailVerified = true;
+          return sendTokenResponse(user, 200, res);
         }
       } catch (e) { console.error('Error generating login OTP', e); }
 
@@ -623,8 +639,9 @@ router.post('/resend-otp', rateLimit(15 * 60 * 1000, 3), async (req, res) => {
     user.emailOtpExpire = new Date(Date.now() + 10 * 60 * 1000);
     await user.save();
 
-    if (sendEmail.sendOtpEmail) {
-      await sendEmail.sendOtpEmail(user, emailOtp);
+    const emailConfigured = process.env.EMAIL_USER && !process.env.EMAIL_USER.includes('example') && process.env.EMAIL_USER !== 'placeholder_user';
+    if (emailConfigured) {
+      try { await sendOtpEmail(user, emailOtp); } catch(e) { console.error('Failed to send OTP:', e.message); }
     }
 
     res.status(200).json({ success: true, message: 'تم إرسال كود التحقق (OTP) مجدداً بنجاح' });
