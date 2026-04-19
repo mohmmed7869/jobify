@@ -189,11 +189,17 @@ const MyApplications = () => {
                         whileHover={{ rotate: 5 }}
                         className="w-14 h-14 md:w-20 md:h-20 bg-white rounded-xl md:rounded-[2rem] border border-slate-50 flex items-center justify-center text-primary-600 font-black text-xl md:text-3xl shadow-premium-sm group-hover:shadow-glow transition-all duration-500 shrink-0"
                       >
-                        {app.job?.companyLogo ? (
-                          <img src={app.job.companyLogo} alt={app.job.companyName} className="w-8 h-8 md:w-12 md:h-12 object-contain" />
-                        ) : (
-                          app.job?.companyName?.charAt(0)
-                        )}
+                        {(app.job?.companyLogo || app.job?.company?.profile?.avatar || app.job?.company?.employerProfile?.companyLogo) ? (
+                          <img 
+                            src={getFileUrl(app.job?.companyLogo || app.job?.company?.employerProfile?.companyLogo || app.job?.company?.profile?.avatar)} 
+                            alt={app.job?.companyName} 
+                            className="w-full h-full object-cover rounded-xl md:rounded-[2rem]" 
+                            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
+                          />
+                        ) : null}
+                        <span style={{ display: (app.job?.companyLogo || app.job?.company?.profile?.avatar || app.job?.company?.employerProfile?.companyLogo) ? 'none' : 'block' }}>
+                          {app.job?.companyName?.charAt(0)}
+                        </span>
                       </motion.div>
                       <div className="min-w-0">
                         <h3 className="text-lg md:text-2xl font-black themed-text group-hover:text-primary-600 transition-colors mb-1 md:mb-2 truncate">

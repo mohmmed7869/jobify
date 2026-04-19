@@ -291,7 +291,7 @@ router.put('/profile', protect, upload.fields([
 
     // تحديث الصورة الشخصية أو شعار الشركة
     if (req.files && req.files['avatar']) {
-      const avatarPath = req.files['avatar'][0].path;
+      const avatarPath = req.files['avatar'][0].path.replace(/\\/g, '/');
       
       // إذا كان المستخدم صاحب عمل، نحفظ الصورة كشعار للشركة
       if (user.role === 'employer' || user.role === 'company') {
@@ -319,7 +319,7 @@ router.put('/profile', protect, upload.fields([
       if (user.profile.idCardImage && fs.existsSync(user.profile.idCardImage)) {
         try { fs.unlinkSync(user.profile.idCardImage); } catch(e) {}
       }
-      user.profile.idCardImage = req.files['idCardImage'][0].path;
+      user.profile.idCardImage = req.files['idCardImage'][0].path.replace(/\\/g, '/');
       user.markModified('profile');
     }
 
@@ -521,7 +521,7 @@ router.post('/upload-resume', protect, authorize('jobseeker'), upload.single('re
       }
     }
 
-    user.jobseekerProfile.resume = req.file.path;
+    user.jobseekerProfile.resume = req.file.path.replace(/\\/g, '/');
     user.markModified('jobseekerProfile');
     await user.save();
 
@@ -642,7 +642,7 @@ router.put('/employer-profile', protect, authorize('employer', 'company'), uploa
       if (user.employerProfile.companyLogo && fs.existsSync(user.employerProfile.companyLogo)) {
         fs.unlinkSync(user.employerProfile.companyLogo);
       }
-      user.employerProfile.companyLogo = req.file.path;
+      user.employerProfile.companyLogo = req.file.path.replace(/\\/g, '/');
     }
 
     await user.save();

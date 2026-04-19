@@ -105,7 +105,7 @@ router.get('/', async (req, res) => {
     query = query.sort(sortBy).skip(startIndex).limit(limit);
 
     // تنفيذ الاستعلام
-    const jobs = await query.populate('company', 'name profile.avatar employerProfile.companyLogo');
+    const jobs = await query.populate('company', 'name profile employerProfile');
 
     // إحصائيات التصفح
     const total = await Job.countDocuments(query.getQuery());
@@ -148,7 +148,7 @@ router.get('/my-jobs', protect, authorize('employer', 'company', 'admin'), async
   try {
     const jobs = await Job.find({ company: req.user._id })
       .sort('-createdAt')
-      .populate('company', 'name profile.avatar employerProfile.companyLogo');
+      .populate('company', 'name profile employerProfile');
 
     res.status(200).json({
       success: true,
@@ -448,7 +448,7 @@ router.get('/:id/similar', async (req, res) => {
       ]
     })
     .limit(5)
-    .populate('company', 'name profile.avatar employerProfile.companyLogo');
+    .populate('company', 'name profile employerProfile');
 
     res.status(200).json({
       success: true,

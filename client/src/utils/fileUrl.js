@@ -12,7 +12,8 @@ export const getFileUrl = (path) => {
   const baseUrl = apiUrl.replace(/\/api$/, '');
   
   // Ensure path doesn't start with / if baseUrl ends with it, or vice versa
-  const normalizedPath = path.startsWith('/') ? path.substring(1) : path;
+  // Also normalize backslashes (Windows) to forward slashes (Web)
+  const normalizedPath = (path.startsWith('/') ? path.substring(1) : path).replace(/\\/g, '/');
   const normalizedBase = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
   
   return `${normalizedBase}${normalizedPath}`;

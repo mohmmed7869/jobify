@@ -137,11 +137,17 @@ const JobDetails = () => {
               <div className="relative group shrink-0">
                 <div className="absolute -inset-2 bg-gradient-to-br from-primary-600 to-accent rounded-[2rem] md:rounded-[3rem] blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
                 <div className="w-24 h-24 md:w-32 md:h-32 bg-white rounded-[1.8rem] md:rounded-[2.8rem] shadow-premium flex items-center justify-center text-primary-600 text-3xl md:text-6xl font-black border-4 border-white transform rotate-3 hover:rotate-0 transition-all duration-500 relative overflow-hidden">
-                  {job.companyLogo ? (
-                    <img src={getFileUrl(job.companyLogo)} alt={job.companyName} className="w-full h-full object-cover" />
-                  ) : (
-                    <span>{job.companyName?.charAt(0)}</span>
-                  )}
+                  {(job.companyLogo || job.company?.profile?.avatar || job.company?.employerProfile?.companyLogo) ? (
+                    <img 
+                      src={getFileUrl(job.companyLogo || job.company?.employerProfile?.companyLogo || job.company?.profile?.avatar)} 
+                      alt={job.companyName} 
+                      className="w-full h-full object-cover" 
+                      onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                    />
+                  ) : null}
+                  <span className="relative z-10" style={{ display: (job.companyLogo || job.company?.profile?.avatar || job.company?.employerProfile?.companyLogo) ? 'none' : 'flex' }}>
+                    {job.companyName?.charAt(0)}
+                  </span>
                   <div className="absolute -bottom-1 -left-1 md:-bottom-2 md:-left-2 w-7 h-7 md:w-10 md:h-10 bg-emerald-500 rounded-full border-2 md:border-4 border-white flex items-center justify-center shadow-lg">
                     <FiCheckCircle className="text-white text-[10px] md:text-sm" />
                   </div>

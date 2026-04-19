@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useSocket } from '../contexts/SocketContext';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
+import { getFileUrl } from '../utils/fileUrl';
 import {
   FiSend, FiSearch, FiMessageSquare, FiArrowRight,
   FiMoreVertical, FiSettings, FiX
@@ -23,18 +24,17 @@ const ConversationItem = ({ chat, isActive, isOnline, onClick }) => (
     <div className="relative shrink-0">
       {chat.otherUserAvatar ? (
         <img
-          src={chat.otherUserAvatar}
+          src={getFileUrl(chat.otherUserAvatar)}
           alt={chat.otherUserName}
           className="w-12 h-12 rounded-full object-cover"
-          onError={e => { e.target.style.display = 'none'; }}
+          onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
         />
-      ) : (
-        <div className={`w-12 h-12 rounded-full flex items-center justify-center font-black text-lg ${
-          isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-        }`}>
-          {chat.otherUserName?.charAt(0) || '؟'}
-        </div>
-      )}
+      ) : null}
+      <div className={`w-12 h-12 rounded-full flex items-center justify-center font-black text-lg ${
+        isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+      }`} style={{ display: chat.otherUserAvatar ? 'none' : 'flex' }}>
+        {chat.otherUserName?.charAt(0) || '؟'}
+      </div>
       {isOnline && (
         <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white" />
       )}
@@ -401,7 +401,16 @@ const Chat = () => {
               <div className="hidden md:flex flex-shrink-0 items-center justify-between px-6 py-4 border-b border-slate-100">
                 <div className="flex items-center gap-3">
                   <div className="relative">
-                    <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary-600 to-primary-400 text-white flex items-center justify-center font-black text-lg">
+                    {activeChat.otherUserAvatar ? (
+                      <img 
+                        src={getFileUrl(activeChat.otherUserAvatar)}
+                        alt=""
+                        className="w-11 h-11 rounded-full object-cover"
+                        onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                      />
+                    ) : null}
+                    <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary-600 to-primary-400 text-white flex items-center justify-center font-black text-lg"
+                         style={{ display: activeChat.otherUserAvatar ? 'none' : 'flex' }}>
                       {activeChat.otherUserName?.charAt(0)?.toUpperCase() || '؟'}
                     </div>
                     {onlineUsers?.includes(activeChat.otherUserId) && (
