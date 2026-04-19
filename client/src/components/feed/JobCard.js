@@ -46,11 +46,17 @@ const JobCard = ({ job }) => {
               whileHover={{ rotate: 10, scale: 1.1 }}
               className="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-[1.5rem] sm:rounded-[1.8rem] flex items-center justify-center text-primary-600 font-black text-2xl sm:text-3xl shadow-premium border border-slate-50 relative shrink-0 overflow-hidden self-start"
             >
-              {job.companyLogo ? (
-                <img src={getFileUrl(job.companyLogo)} alt={job.companyName} className="w-full h-full object-cover" />
-              ) : (
-                <span className="relative z-10">{job.companyName ? job.companyName.charAt(0) : 'J'}</span>
-              )}
+              {(job.companyLogo || job.company?.profile?.avatar) ? (
+                <img
+                  src={getFileUrl(job.companyLogo || job.company?.profile?.avatar)}
+                  alt={job.companyName}
+                  className="w-full h-full object-cover"
+                  onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                />
+              ) : null}
+              <span className="relative z-10" style={{ display: (job.companyLogo || job.company?.profile?.avatar) ? 'none' : 'flex' }}>
+                {job.companyName ? job.companyName.charAt(0).toUpperCase() : 'J'}
+              </span>
             </motion.div>
             
             <div className="space-y-2 sm:space-y-3 min-w-0">
