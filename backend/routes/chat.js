@@ -69,30 +69,38 @@ router.post('/send', protect, async (req, res) => {
 // @access  Private
 router.get('/conversations', protect, async (req, res) => {
   try {
-    // الحصول على جميع الرسائل التي يشارك فيها المستخدم
     const messages = await Message.find({
       $or: [{ sender: req.user.id }, { recipient: req.user.id }]
-    }).sort({ createdAt: -1 });
+    })
+      .sort({ createdAt: -1 })
+      .populate('sender', 'name profile.avatar')
+      .populate('recipient', 'name profile.avatar');
 
     const conversationsMap = new Map();
 
     for (const msg of messages) {
-      const otherUser = msg.sender.toString() === req.user.id.toString() 
-        ? msg.recipient.toString() 
-        : msg.sender.toString();
-      
-      if (!conversationsMap.has(otherUser)) {
+      const isSender = msg.sender._id.toString() === req.user.id.toString();
+      const otherUserObj = isSender ? msg.recipient : msg.sender;
+      const otherUserId = otherUserObj._id.toString();
+
+      if (!conversationsMap.has(otherUserId)) {
         const unreadCount = await Message.countDocuments({
-          sender: otherUser,
+          sender: otherUserId,
           recipient: req.user.id,
           read: false
         });
 
-        conversationsMap.set(otherUser, {
-          otherUserId: otherUser,
-          lastMessage: msg,
+        conversationsMap.set(otherUserId, {
+          otherUserId,
+          otherUserName: otherUserObj.name || 'مستخدم',
+          otherUserAvatar: otherUserObj.profile?.avatar || null,
+          lastMessage: {
+            message: msg.message,
+            timestamp: msg.createdAt,
+            senderId: msg.sender._id
+          },
           unreadCount,
-          conversationId: [req.user.id.toString(), otherUser].sort().join('-')
+          conversationId: [req.user.id.toString(), otherUserId].sort().join('-')
         });
       }
     }
@@ -112,6 +120,7 @@ router.get('/conversations', protect, async (req, res) => {
     });
   }
 });
+
 
 // @desc    الحصول على رسائل محادثة معينة
 // @route   GET /api/chat/conversation/:userId
