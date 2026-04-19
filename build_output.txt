@@ -1,0 +1,175 @@
+Creating an optimized production build...
+Compiled with warnings.
+
+[eslint] 
+src\pages\Home.js
+  Line 7:3:   'FiSearch' is defined but never used     no-unused-vars
+  Line 7:13:  'FiUsers' is defined but never used      no-unused-vars
+  Line 7:22:  'FiBriefcase' is defined but never used  no-unused-vars
+  Line 8:3:   'FiStar' is defined but never used       no-unused-vars
+
+src\pages\JobFeed.js
+  Line 19:6:    React Hook useEffect has a missing dependency: 'fetchFeed'. Either include it or remove the dependency array                                                                                                                                                                                                                                                       react-hooks/exhaustive-deps
+  Line 199:21:  The href attribute requires a valid value to be accessible. Provide a valid, navigable address as the href value. If you cannot provide a valid href, but still need the element to resemble a link, use a button and change it with appropriate styles. Learn more: https://github.com/jsx-eslint/eslint-plugin-jsx-a11y/blob/HEAD/docs/rules/anchor-is-valid.md  jsx-a11y/anchor-is-valid
+
+src\pages\Notifications.js
+  Line 16:9:  'navigate' is assigned a value but never used  no-unused-vars
+
+src\pages\PublicProfile.js
+  Line 7:27:  'FaBriefcase' is defined but never used                                                                                                  no-unused-vars
+  Line 7:40:  'FaEnvelope' is defined but never used                                                                                                   no-unused-vars
+  Line 8:3:   'FaPhone' is defined but never used                                                                                                      no-unused-vars
+  Line 8:12:  'FaLink' is defined but never used                                                                                                       no-unused-vars
+  Line 9:14:  'FaShare' is defined but never used                                                                                                      no-unused-vars
+  Line 9:37:  'FaMessageSquare' is defined but never used                                                                                              no-unused-vars
+  Line 30:6:  React Hook useEffect has missing dependencies: 'fetchUserData' and 'fetchUserPosts'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+src\pages\Social.js
+  Line 9:16:  'FaUserCircle' is defined but never used  no-unused-vars
+
+src\pages\SocialAuthSuccess.js
+  Line 4:8:   'LoadingSpinner' is defined but never used                                                                   no-unused-vars
+  Line 24:6:  React Hook useEffect has a missing dependency: 'setToken'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src\pages\Terms.js
+  Line 2:10:  'FiShield' is defined but never used  no-unused-vars
+
+src\pages\Unauthorized.js
+  Line 3:10:  'FiShield' is defined but never used  no-unused-vars
+
+src\pages\admin\Analytics.js
+  Line 4:3:   'FiTrendingUp' is defined but never used  no-unused-vars
+  Line 6:22:  'FiZap' is defined but never used         no-unused-vars
+  Line 6:29:  'FiCalendar' is defined but never used    no-unused-vars
+
+src\pages\admin\CustomerSupport.js
+  Line 4:30:  'FaCheckCircle' is defined but never used        no-unused-vars
+  Line 4:45:  'FaExclamationCircle' is defined but never used  no-unused-vars
+
+src\pages\admin\Dashboard.js
+  Line 6:21:   'FiMoreVertical' is defined but never used                                                                    no-unused-vars
+  Line 19:16:  'setLogs' is assigned a value but never used                                                                  no-unused-vars
+  Line 24:10:  'aiConfig' is assigned a value but never used                                                                 no-unused-vars
+  Line 24:20:  'setAiConfig' is assigned a value but never used                                                              no-unused-vars
+  Line 34:6:   React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  Line 396:7:  'FiCpu' is assigned a value but never used                                                                    no-unused-vars
+
+src\pages\admin\ManageJobs.js
+  Line 5:3:   'FiCheckCircle' is defined but never used                                                                     no-unused-vars
+  Line 5:18:  'FiXCircle' is defined but never used                                                                         no-unused-vars
+  Line 6:27:  'FiClock' is defined but never used                                                                           no-unused-vars
+  Line 22:6:  React Hook useEffect has a missing dependency: 'fetchJobs'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src\pages\admin\ManageUsers.js
+  Line 4:23:   'FiMoreVertical' is defined but never used                                                                     no-unused-vars
+  Line 6:22:   'FiActivity' is defined but never used                                                                         no-unused-vars
+  Line 16:24:  'setStatusFilter' is assigned a value but never used                                                           no-unused-vars
+  Line 22:6:   React Hook useEffect has a missing dependency: 'fetchUsers'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src\pages\auth\Login.js
+  Line 4:91:  'FiShield' is defined but never used  no-unused-vars
+
+src\pages\auth\Register.js
+  Line 5:44:  'FiArrowRight' is defined but never used  no-unused-vars
+
+src\pages\employer\ApplicationDetails.js
+  Line 5:3:    'FiUser' is defined but never used                                                                                          no-unused-vars
+  Line 7:64:   'FiArrowRight' is defined but never used                                                                                    no-unused-vars
+  Line 28:6:   React Hook useEffect has a missing dependency: 'fetchApplicationDetails'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  Line 421:7:  'FiAlertCircle' is assigned a value but never used                                                                          no-unused-vars
+
+src\pages\employer\JobRequirements.js
+  Line 4:27:   'FiCheckCircle' is defined but never used              no-unused-vars
+  Line 5:48:   'FiActivity' is defined but never used                 no-unused-vars
+  Line 6:29:   'FiStar' is defined but never used                     no-unused-vars
+  Line 6:37:   'FiFilter' is defined but never used                   no-unused-vars
+  Line 28:25:  'setAiSuggestions' is assigned a value but never used  no-unused-vars
+
+src\pages\employer\ManageJobs.js
+  Line 5:3:   'FiMoreVertical' is defined but never used  no-unused-vars
+  Line 5:27:  'FiFilter' is defined but never used        no-unused-vars
+
+src\pages\employer\PostJob.js
+  Line 8:3:  'FiActivity' is defined but never used  no-unused-vars
+
+src\pages\employer\Profile.js
+  Line 7:24:   'FaLink' is defined but never used           no-unused-vars
+  Line 7:32:   'FaEdit' is defined but never used           no-unused-vars
+  Line 9:12:   'FaCheckCircle' is defined but never used    no-unused-vars
+  Line 11:19:  'FiStar' is defined but never used           no-unused-vars
+  Line 11:27:  'FiZap' is defined but never used            no-unused-vars
+  Line 12:18:  'AnimatePresence' is defined but never used  no-unused-vars
+
+src\pages\employer\ViewApplications.js
+  Line 5:12:  'FiFilter' is defined but never used                                                                                  no-unused-vars
+  Line 7:3:   'FiTrendingUp' is defined but never used                                                                              no-unused-vars
+  Line 7:29:  'FiArrowLeft' is defined but never used                                                                               no-unused-vars
+  Line 7:42:  'FiArrowRight' is defined but never used                                                                              no-unused-vars
+  Line 8:3:   'FiMoreVertical' is defined but never used                                                                            no-unused-vars
+  Line 35:6:  React Hook useEffect has a missing dependency: 'fetchApplications'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src\pages\interview\InterviewFeedback.js
+  Line 5:3:   'FaInfoCircle' is defined but never used       no-unused-vars
+  Line 13:9:  'navigate' is assigned a value but never used  no-unused-vars
+
+src\pages\interview\VideoInterview.js
+  Line 3:8:  'axios' is defined but never used  no-unused-vars
+
+src\pages\jobs\JobDetails.js
+  Line 5:26:  'FiClock' is defined but never used         no-unused-vars
+  Line 14:8:  'LoadingSpinner' is defined but never used  no-unused-vars
+
+src\pages\jobs\JobSearch.js
+  Line 5:23:  'FiMapPin' is defined but never used        no-unused-vars
+  Line 7:19:  'FiAlertCircle' is defined but never used   no-unused-vars
+  Line 10:8:  'LoadingSpinner' is defined but never used  no-unused-vars
+
+src\pages\jobseeker\MyApplications.js
+  Line 6:3:   'FiXCircle' is defined but never used       no-unused-vars
+  Line 6:14:  'FiActivity' is defined but never used      no-unused-vars
+  Line 7:3:   'FiTrendingUp' is defined but never used    no-unused-vars
+  Line 8:3:   'FiFilter' is defined but never used        no-unused-vars
+  Line 8:23:  'FiRefreshCcw' is defined but never used    no-unused-vars
+  Line 11:8:  'LoadingSpinner' is defined but never used  no-unused-vars
+
+src\pages\jobseeker\Profile.js
+  Line 5:18:   'AnimatePresence' is defined but never used  no-unused-vars
+  Line 7:33:   'FaPhone' is defined but never used          no-unused-vars
+  Line 8:33:   'FaLanguage' is defined but never used       no-unused-vars
+  Line 8:45:   'FaCertificate' is defined but never used    no-unused-vars
+  Line 9:49:   'FaGlobe' is defined but never used          no-unused-vars
+  Line 10:3:   'FaLinkedin' is defined but never used       no-unused-vars
+  Line 10:15:  'FaGithub' is defined but never used         no-unused-vars
+  Line 10:25:  'FaTwitter' is defined but never used        no-unused-vars
+  Line 13:10:  'FiZap' is defined but never used            no-unused-vars
+  Line 13:26:  'FiStar' is defined but never used           no-unused-vars
+
+src\pages\jobseeker\ResumeBuilder.js
+  Line 1:27:    'useEffect' is defined but never used       no-unused-vars
+  Line 7:15:    'FaPrint' is defined but never used         no-unused-vars
+  Line 7:40:    'FaTrash' is defined but never used         no-unused-vars
+  Line 11:3:    'FiSearch' is defined but never used        no-unused-vars
+  Line 11:13:   'FiExternalLink' is defined but never used  no-unused-vars
+  Line 196:30:  'tips' is assigned a value but never used   no-unused-vars
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+File sizes after gzip:
+
+  287.52 kB  build\static\js\main.b979ea0d.js
+  22.97 kB   build\static\css\main.3c459ea8.css
+
+The project was built assuming it is hosted at /.
+You can control this with the homepage field in your package.json.
+
+The build folder is ready to be deployed.
+You may serve it with a static server:
+
+  npm install -g serve
+  serve -s build
+
+Find out more about deployment here:
+
+  https://cra.link/deployment
+

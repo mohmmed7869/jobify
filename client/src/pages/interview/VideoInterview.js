@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
+
 import {
   FaVideo, FaVideoSlash, FaMicrophone, FaMicrophoneSlash,
   FaDesktop, FaPhoneSlash, FaComments, FaUsers, FaStickyNote,
@@ -281,6 +281,11 @@ const VideoInterview = () => {
     setConnectionStatus('connecting');
     const pc = createPeerConnection(senderSocketId);
     try {
+      // حماية من glare: إذا كان هناك offer محلي معلق نتجاهل الوارد
+      if (pc.signalingState === 'have-local-offer') {
+        console.warn('Glare detected - rolling back');
+        await pc.setLocalDescription({ type: 'rollback' });
+      }
       await pc.setRemoteDescription(new RTCSessionDescription(offer));
       await addPendingCandidates(senderSocketId, pc);
       const answer = await pc.createAnswer();
@@ -354,9 +359,9 @@ const VideoInterview = () => {
         return [...prev, participant];
       });
       toast.success(`${participant.userInfo?.name || 'مستخدم'} انضم للمقابلة`);
-      // الشخص الجديد يبدأ الاتصال مع الموجودين
-      // والموجودون يبدأون معه أيضاً (يؤدي لتبادل الـ offer)
-      setTimeout(() => createAndSendOffer(participant.socketId), 1000);
+      // الموجود في الغرفة هو من يُرسل الـ offer للداخل الجديد
+      // (يمنع حالة glare حيث يرسل الاثنان offer في نفس الوقت)
+      setTimeout(() => createAndSendOffer(participant.socketId), 800);
     };
 
     const onUserLeft = ({ socketId }) => {
