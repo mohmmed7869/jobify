@@ -108,21 +108,10 @@ const Register = () => {
       const result = await register(data);
       
       if (result.success && result.requiresOtp) {
-        toast.success(result.message);
-        setStep(4);
-        setTimer(60);
-        // بدء المؤقت
-        const interval = setInterval(() => {
-          setTimer((prev) => {
-            if (prev <= 1) {
-              clearInterval(interval);
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
+        toast.success(result.message || 'تم التسجيل! يرجى تفعيل حسابك');
+        navigate('/verify-otp', { state: { email: result.email || formData.email, fromRegister: true } });
       } else if (result.success) {
-        toast.success(result.message);
+        toast.success(result.message || 'تم إنشاء الحساب بنجاح 🎉');
         navigate('/login');
       } else {
         toast.error(result.message || 'خطأ في إنشاء الحساب');

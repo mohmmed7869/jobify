@@ -19,7 +19,7 @@ const Login = () => {
   const [otp, setOtp] = useState('');
   const [timer, setTimer] = useState(0);
 
-  const { login, verifyOtp, resendOtp } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -56,19 +56,8 @@ const Login = () => {
         toast.success('تم تسجيل الدخول بنجاح');
         navigate('/');
       } else if (result.requiresOtp) {
-        toast.success(result.message || 'يرجى تفعيل حسابك أولاً');
-        setOtpMail(result.email || formData.email);
-        setShowOtpRequired(true);
-        setTimer(60);
-        const interval = setInterval(() => {
-          setTimer((prev) => {
-            if (prev <= 1) {
-              clearInterval(interval);
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
+        // التوجيه لصفحة التحقق المستقلة
+        navigate('/verify-otp', { state: { email: result.email || formData.email } });
       } else {
         toast.error(result.message || 'خطأ في تسجيل الدخول');
       }

@@ -17,6 +17,7 @@ import SocialAuthSuccess from './pages/SocialAuthSuccess';
 import Register from './pages/auth/Register';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
+import VerifyOTP from './pages/auth/VerifyOTP';
 
 // Job Seeker Pages
 import JobSeekerDashboard from './pages/jobseeker/Dashboard';
@@ -193,6 +194,8 @@ function App() {
                   <ResetPassword />
                 </PublicRoute>
               } />
+
+              <Route path="/verify-otp" element={<VerifyOTP />} />
 
               <Route path="/terms" element={
                 <AppLayout>
