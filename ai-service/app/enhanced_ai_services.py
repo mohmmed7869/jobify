@@ -1,953 +1,514 @@
 """
-Enhanced AI Services
-نظام الذكاء الاصطناعي المحسن مع خدمات متقدمة للتوظيف
+Enhanced AI Services - Real AI Implementation
+يستخدم Google Gemini API + scikit-learn للذكاء الاصطناعي الحقيقي
 """
 
 import os
-import logging
-import asyncio
+import re
 import json
-import pickle
-from typing import List, Dict, Any, Optional, Tuple
-from datetime import datetime, timedelta
+import logging
 import hashlib
+from typing import List, Dict, Any, Optional
+from datetime import datetime
 
 import numpy as np
-import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.cluster import KMeans
-from sklearn.preprocessing import StandardScaler
-import nltk
-from nltk.sentiment import SentimentIntensityAnalyzer
-from transformers import pipeline, AutoTokenizer, AutoModel
-import torch
-import spacy
-from textblob import TextBlob
 
-# Async support for AI operations
-import aiohttp
-import asyncio
+try:
+    import google.generativeai as genai
+    GEMINI_KEY = os.getenv('GEMINI_API_KEY', '')
+    if GEMINI_KEY:
+        genai.configure(api_key=GEMINI_KEY)
+        gemini_model = genai.GenerativeModel('gemini-1.5-flash')
+        GEMINI_AVAILABLE = True
+    else:
+        GEMINI_AVAILABLE = False
+except Exception:
+    GEMINI_AVAILABLE = False
 
-# Enhanced logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Download required NLTK data
-try:
-    nltk.download('vader_lexicon', quiet=True)
-    nltk.download('punkt', quiet=True)
-    nltk.download('stopwords', quiet=True)
-except:
-    logger.warning("Failed to download NLTK data")
+# ── قاعدة بيانات المهارات ──────────────────────────────
+SKILLS_DB = {
+    'programming': [
+        'python','javascript','typescript','java','c++','c#','php','ruby','go','rust',
+        'kotlin','swift','scala','r','matlab','bash','perl','dart'
+    ],
+    'web': [
+        'react','angular','vue','node.js','express','django','flask','fastapi',
+        'spring','laravel','nextjs','html','css','tailwind','bootstrap','graphql','rest api'
+    ],
+    'databases': [
+        'mysql','postgresql','mongodb','redis','elasticsearch','oracle','sqlite',
+        'cassandra','dynamodb','firebase','supabase'
+    ],
+    'cloud_devops': [
+        'aws','azure','gcp','docker','kubernetes','terraform','jenkins','github actions',
+        'ci/cd','linux','nginx','ansible'
+    ],
+    'data_ai': [
+        'machine learning','deep learning','data analysis','pandas','numpy',
+        'tensorflow','pytorch','scikit-learn','tableau','power bi','nlp','computer vision'
+    ],
+    'mobile': ['react native','flutter','android','ios','swift','kotlin'],
+    'design': ['figma','photoshop','illustrator','ux','ui','sketch'],
+    'soft': [
+        'leadership','communication','teamwork','problem solving','agile','scrum',
+        'project management','critical thinking','time management','adaptability'
+    ]
+}
+
+ALL_SKILLS = [s for skills in SKILLS_DB.values() for s in skills]
+
 
 class EnhancedAIService:
-    """خدمة الذكاء الاصطناعي المحسنة للتوظيف"""
-    
+    """خدمة الذكاء الاصطناعي الحقيقية"""
+
     def __init__(self):
-        self.models_cache = {}
-        self.vectorizers = {}
-        self.skills_database = self._load_skills_database()
-        self.sentiment_analyzer = None
-        self.nlp_model = None
-        self.job_classifier = None
-        self.resume_parser = None
-        self.matching_engine = None
-        self.interview_analyzer = None
-        
-        # Performance metrics
-        self.metrics = {
-            'matches_generated': 0,
-            'resumes_analyzed': 0,
-            'interviews_processed': 0,
-            'predictions_made': 0,
-            'cache_hits': 0,
-            'processing_times': []
-        }
-        
-        self._initialize_models()
-    
-    def _initialize_models(self):
-        """تهيئة نماذج الذكاء الاصطناعي الأساسية"""
-        try:
-            logger.info("🤖 Initializing core AI components...")
-            
-            # Initialize sentiment analyzer (Lightweight)
-            self.sentiment_analyzer = SentimentIntensityAnalyzer()
-            
-            # NLP model loading (Lazy loading recommended, but keeping core for now)
-            self.nlp_model = None 
-            
-            # Transformers (Heavy) - Load only if needed or keep as None for now
-            self.job_classifier = None
-            
-            # Initialize sub-services with necessary data
-            self.resume_parser = ResumeParser(skills_db=self.skills_database)
-            self.matching_engine = JobMatchingEngine()
-            self.interview_analyzer = InterviewAnalyzer()
-            
-            logger.info("✅ AI core components ready")
-            
-        except Exception as e:
-            logger.error(f"❌ Error initializing AI components: {e}")
-    
-    def _load_skills_database(self) -> Dict:
-        """تحميل قاعدة بيانات المهارات"""
-        skills_db = {
-            'programming': [
-                'python', 'javascript', 'java', 'c++', 'c#', 'php', 'ruby', 'go',
-                'react', 'angular', 'vue.js', 'node.js', 'django', 'flask',
-                'spring', 'laravel', 'rails', 'express'
-            ],
-            'data_science': [
-                'machine learning', 'deep learning', 'data analysis', 'statistics',
-                'pandas', 'numpy', 'tensorflow', 'pytorch', 'scikit-learn',
-                'tableau', 'power bi', 'sql', 'mongodb', 'elasticsearch'
-            ],
-            'design': [
-                'photoshop', 'illustrator', 'figma', 'sketch', 'indesign',
-                'ui/ux design', 'graphic design', 'web design', 'branding'
-            ],
-            'business': [
-                'project management', 'agile', 'scrum', 'business analysis',
-                'marketing', 'sales', 'customer service', 'finance', 'accounting'
-            ],
-            'soft_skills': [
-                'leadership', 'communication', 'teamwork', 'problem solving',
-                'creativity', 'time management', 'critical thinking', 'adaptability'
-            ]
-        }
-        
-        # Arabic skills mapping
-        arabic_skills = {
-            'البرمجة': skills_db['programming'],
-            'علوم البيانات': skills_db['data_science'],
-            'التصميم': skills_db['design'],
-            'الأعمال': skills_db['business'],
-            'المهارات الشخصية': skills_db['soft_skills']
-        }
-        
-        skills_db.update(arabic_skills)
-        return skills_db
-    
-    async def analyze_resume(self, resume_text: str, user_id: str = None) -> Dict[str, Any]:
-        """تحليل السيرة الذاتية بشكل متقدم"""
-        start_time = datetime.now()
-        
-        try:
-            # Check cache
-            cache_key = hashlib.md5(resume_text.encode()).hexdigest()
-            if cache_key in self.models_cache:
-                self.metrics['cache_hits'] += 1
-                return self.models_cache[cache_key]
-            
-            analysis = await self.resume_parser.parse_resume(resume_text)
-            
-            # Calculate compatibility score for the analysis
-            score = await self._calculate_market_compatibility(analysis)
-            analysis['score'] = score
-            
-            # Enhanced analysis
-            enhanced_analysis = {
-                **analysis,
-                'sentiment_analysis': self._analyze_sentiment(resume_text),
-                'skill_gap_analysis': await self._analyze_skill_gaps(analysis.get('skills', [])),
-                'career_progression': self._analyze_career_progression(analysis.get('experience', [])),
-                'education_relevance': self._analyze_education_relevance(analysis.get('education', [])),
-                'keyword_density': self._calculate_keyword_density(resume_text),
-                'improvement_suggestions': await self._generate_resume_suggestions(analysis),
-                'compatibility_score': score,
-                'processed_at': datetime.now().isoformat()
-            }
-            
-            # Cache result
-            self.models_cache[cache_key] = enhanced_analysis
-            
-            # Update metrics
-            self.metrics['resumes_analyzed'] += 1
-            processing_time = (datetime.now() - start_time).total_seconds()
-            self.metrics['processing_times'].append(processing_time)
-            
-            logger.info(f"Resume analyzed in {processing_time:.2f}s for user {user_id}")
-            
-            return enhanced_analysis
-            
-        except Exception as e:
-            logger.error(f"Error analyzing resume: {e}")
-            raise
-    
-    async def match_jobs_to_candidate(self, candidate_profile: Dict, available_jobs: List[Dict]) -> List[Dict]:
-        """مطابقة الوظائف مع المرشح بذكاء اصطناعي متقدم"""
-        try:
-            matches = await self.matching_engine.find_matches(candidate_profile, available_jobs)
-            
-            # Enhanced matching with AI scoring
-            enhanced_matches = []
-            
-            for match in matches:
-                enhanced_match = {
-                    **match,
-                    'ai_confidence': await self._calculate_ai_confidence(candidate_profile, match['job']),
-                    'skill_compatibility': self._calculate_skill_compatibility(
-                        candidate_profile.get('skills', []),
-                        match['job'].get('required_skills', [])
-                    ),
-                    'experience_fit': self._calculate_experience_fit(
-                        candidate_profile.get('experience', []),
-                        match['job'].get('experience_required', 0)
-                    ),
-                    'culture_fit_score': await self._predict_culture_fit(candidate_profile, match['job']),
-                    'salary_compatibility': self._calculate_salary_fit(
-                        candidate_profile.get('expected_salary'),
-                        match['job'].get('salary_range')
-                    ),
-                    'growth_potential': await self._assess_growth_potential(candidate_profile, match['job']),
-                    'recommendation_reasons': await self._generate_match_reasons(candidate_profile, match['job'])
-                }
-                
-                enhanced_matches.append(enhanced_match)
-            
-            # Sort by AI confidence and compatibility scores
-            enhanced_matches.sort(key=lambda x: (
-                x['ai_confidence'] * 0.3 +
-                x['skill_compatibility'] * 0.25 +
-                x['experience_fit'] * 0.2 +
-                x['culture_fit_score'] * 0.15 +
-                x['growth_potential'] * 0.1
-            ), reverse=True)
-            
-            self.metrics['matches_generated'] += len(enhanced_matches)
-            
-            return enhanced_matches[:10]  # Return top 10 matches
-            
-        except Exception as e:
-            logger.error(f"Error matching jobs: {e}")
-            raise
-    
-    async def analyze_interview_performance(self, interview_data: Dict) -> Dict[str, Any]:
-        """تحليل أداء المقابلة بالذكاء الاصطناعي"""
-        try:
-            analysis = await self.interview_analyzer.analyze_performance(interview_data)
-            
-            enhanced_analysis = {
-                **analysis,
-                'communication_score': self._analyze_communication_skills(interview_data.get('transcript', '')),
-                'technical_competency': await self._assess_technical_answers(interview_data.get('questions', [])),
-                'behavioral_indicators': self._analyze_behavioral_responses(interview_data.get('responses', [])),
-                'stress_indicators': self._detect_stress_patterns(interview_data),
-                'improvement_areas': await self._identify_improvement_areas(analysis),
-                'hiring_recommendation': await self._generate_hiring_recommendation(analysis),
-                'follow_up_questions': await self._suggest_follow_up_questions(analysis)
-            }
-            
-            self.metrics['interviews_processed'] += 1
-            
-            return enhanced_analysis
-            
-        except Exception as e:
-            logger.error(f"Error analyzing interview: {e}")
-            raise
-    
-    async def generate_job_description(self, job_requirements: Dict) -> Dict[str, Any]:
-        """إنشاء وصف وظيفي محسن بالذكاء الاصطناعي"""
-        try:
-            # Base job description generation
-            base_description = await self._generate_base_description(job_requirements)
-            
-            # AI enhancements
-            enhanced_description = {
-                'title': await self._optimize_job_title(job_requirements.get('title', '')),
-                'summary': await self._generate_compelling_summary(job_requirements),
-                'responsibilities': await self._generate_detailed_responsibilities(job_requirements),
-                'requirements': await self._optimize_requirements(job_requirements.get('requirements', [])),
-                'benefits': await self._suggest_competitive_benefits(job_requirements),
-                'company_culture': await self._generate_culture_description(job_requirements.get('company_info', {})),
-                'seo_keywords': await self._extract_seo_keywords(job_requirements),
-                'inclusivity_score': self._analyze_inclusivity(base_description),
-                'readability_score': self._calculate_readability(base_description),
-                'market_competitiveness': await self._assess_market_competitiveness(job_requirements)
-            }
-            
-            return enhanced_description
-            
-        except Exception as e:
-            logger.error(f"Error generating job description: {e}")
-            raise
-    
-    async def predict_candidate_success(self, candidate_profile: Dict, job_details: Dict) -> Dict[str, Any]:
-        """توقع نجاح المرشح في الوظيفة"""
-        try:
-            # Feature extraction
-            features = self._extract_prediction_features(candidate_profile, job_details)
-            
-            # AI prediction model (simplified)
-            success_probability = await self._calculate_success_probability(features)
-            
-            prediction = {
-                'success_probability': success_probability,
-                'confidence_level': self._calculate_prediction_confidence(features),
-                'key_success_factors': self._identify_success_factors(features),
-                'risk_factors': self._identify_risk_factors(features),
-                'recommended_onboarding': await self._suggest_onboarding_plan(candidate_profile, job_details),
-                'performance_indicators': self._define_performance_metrics(job_details),
-                'retention_probability': await self._predict_retention(candidate_profile, job_details)
-            }
-            
-            self.metrics['predictions_made'] += 1
-            
-            return prediction
-            
-        except Exception as e:
-            logger.error(f"Error predicting candidate success: {e}")
-            raise
+        self._cache: Dict[str, Any] = {}
+        self.resume_parser = ResumeParser()
+        self.matching_engine = JobMatchingEngine()
+        self.interview_analyzer = InterviewAnalyzer()
+        logger.info(f"✅ AI Service ready | Gemini: {GEMINI_AVAILABLE}")
 
-    async def chat_bot(self, message: str, context: Optional[Dict] = None) -> Dict[str, Any]:
-        """مساعد ذكي للدردشة باستخدام نماذج متقدمة"""
-        try:
-            # Try to use DialoGPT if available
-            if self.job_classifier and hasattr(self.job_classifier, 'model'):
-                try:
-                    # In a real scenario, we'd use conversational pipeline
-                    # For now, simulated response from the transformer model
-                    result = self.job_classifier(message)
-                    ai_response = f"بناءً على تحليلي: {result[0]['label']}"
-                    # This is a fallback since DialoGPT setup might be limited
-                    if "LABEL" in ai_response:
-                        ai_response = self._generate_local_chat_response(message)
-                except:
-                    ai_response = self._generate_local_chat_response(message)
-            else:
-                ai_response = self._generate_local_chat_response(message)
+    # ═══════════════════════════════════════════════════
+    # تحليل السيرة الذاتية
+    # ═══════════════════════════════════════════════════
+    async def analyze_resume(self, resume_text: str, user_id: str = None) -> Dict:
+        cache_key = hashlib.md5(resume_text.encode()).hexdigest()
+        if cache_key in self._cache:
+            return self._cache[cache_key]
 
-            return {
-                'response': ai_response,
-                'timestamp': datetime.now().isoformat(),
-                'used_ai': True
-            }
-        except Exception as e:
-            logger.error(f"Chat error: {e}")
-            return {
-                'response': "عذراً، حدث خطأ في معالجة رسالتك. كيف يمكنني مساعدتك بطريقة أخرى؟",
-                'timestamp': datetime.now().isoformat(),
-                'used_ai': False
-            }
+        skills       = extract_skills(resume_text)
+        exp_years    = extract_experience_years(resume_text)
+        education    = extract_education(resume_text)
+        score        = _compute_resume_score(skills, exp_years, education, resume_text)
+        summary      = _build_summary(skills, exp_years, education)
+        suggestions  = await self._generate_resume_suggestions({'skills': skills, 'experience_years': exp_years, 'education': education, 'summary': summary})
 
-    def _generate_local_chat_response(self, message: str) -> str:
-        """توليد رد محلي ذكي في حال عدم توفر النماذج السحابية"""
-        msg = message.lower()
-        if "وظيفة" in msg or "عمل" in msg:
-            return "يمكنني مساعدتك في العثور على الوظائف المناسبة. هل تبحث في مجال معين مثل البرمجة أو التسويق؟"
-        elif "سيرة" in msg or "cv" in msg:
-            return "لدينا أدوات متقدمة لتحليل وتحسين السيرة الذاتية. هل ترغب في رفع سيرتك الذاتية الآن؟"
-        elif "مقابلة" in msg:
-            return "التحضير للمقابلة هو مفتاح النجاح. يمكنني محاكاة مقابلة تجريبية معك."
-        elif "راتب" in msg:
-            return "الرواتب تعتمد على المهارات والخبرة. يمكنني إعطاؤك متوسطات الرواتب في منطقتك."
+        result = {
+            'skills': skills,
+            'experience_years': exp_years,
+            'education': education,
+            'score': round(score, 1),
+            'summary': summary,
+            'improvement_suggestions': suggestions,
+            'embedding': _tfidf_vector(resume_text),
+            'processed_at': datetime.now().isoformat()
+        }
+        self._cache[cache_key] = result
+        return result
+
+    # ═══════════════════════════════════════════════════
+    # توليد embedding للوظيفة
+    # ═══════════════════════════════════════════════════
+    def generate_job_embedding(self, description: str, title: str, skills: List[str]) -> List[float]:
+        text = f"{title} {description} {' '.join(skills)}"
+        return _tfidf_vector(text)
+
+    # ═══════════════════════════════════════════════════
+    # حساب نسبة التطابق
+    # ═══════════════════════════════════════════════════
+    def calculate_job_match_score(
+        self,
+        candidate_embedding: List[float],
+        job_embedding: List[float],
+        candidate_skills: List[str],
+        job_skills: List[str],
+        candidate_experience: int,
+        required_experience: int
+    ) -> Dict:
+        # cosine similarity حقيقية
+        ce = np.array(candidate_embedding).reshape(1, -1)
+        je = np.array(job_embedding).reshape(1, -1)
+        sem = float(cosine_similarity(ce, je)[0][0]) * 40
+
+        # مطابقة المهارات
+        if job_skills:
+            c_lower = [s.lower() for s in candidate_skills]
+            j_lower = [s.lower() for s in job_skills]
+            matched = sum(1 for js in j_lower if any(js in cs or cs in js for cs in c_lower))
+            skills_score = (matched / len(job_skills)) * 40
         else:
-            return "مرحباً بك! أنا مساعدك الذكي في Jobify. يمكنني مساعدتك في البحث عن وظائف، تحسين سيرتك الذاتية، والتحضير للمقابلات."
-    
-    async def generate_personalized_recommendations(self, user_profile: Dict, user_type: str) -> Dict[str, Any]:
-        """إنشاء توصيات شخصية للمستخدمين"""
-        try:
-            recommendations = {}
-            
-            if user_type == 'jobseeker':
-                recommendations = {
-                    'career_paths': await self._suggest_career_paths(user_profile),
-                    'skill_development': await self._recommend_skill_development(user_profile),
-                    'job_opportunities': await self._find_hidden_opportunities(user_profile),
-                    'networking_suggestions': await self._suggest_networking_opportunities(user_profile),
-                    'interview_preparation': await self._create_interview_prep_plan(user_profile),
-                    'salary_insights': await self._provide_salary_insights(user_profile),
-                    'market_trends': await self._analyze_market_trends(user_profile.get('industry'))
-                }
-            
-            elif user_type == 'employer':
-                recommendations = {
-                    'talent_pipeline': await self._build_talent_pipeline(user_profile),
-                    'hiring_strategies': await self._recommend_hiring_strategies(user_profile),
-                    'compensation_analysis': await self._analyze_compensation_competitiveness(user_profile),
-                    'employer_branding': await self._suggest_branding_improvements(user_profile),
-                    'diversity_insights': await self._provide_diversity_insights(user_profile),
-                    'retention_strategies': await self._recommend_retention_strategies(user_profile)
-                }
-            
-            return {
-                'recommendations': recommendations,
-                'generated_at': datetime.now().isoformat(),
-                'confidence_scores': self._calculate_recommendation_confidence(recommendations),
-                'priority_actions': self._prioritize_recommendations(recommendations)
-            }
-            
-        except Exception as e:
-            logger.error(f"Error generating recommendations: {e}")
-            raise
-    
-    def _analyze_sentiment(self, text: str) -> Dict[str, float]:
-        """تحليل المشاعر في النص"""
-        if not self.sentiment_analyzer:
-            return {'compound': 0.0, 'positive': 0.0, 'neutral': 1.0, 'negative': 0.0}
-        
-        scores = self.sentiment_analyzer.polarity_scores(text)
+            skills_score = 20
+
+        # مطابقة الخبرة
+        if required_experience > 0:
+            exp_score = min(candidate_experience / required_experience, 1.0) * 20
+        else:
+            exp_score = 15
+
+        total = round(min(sem + skills_score + exp_score, 100), 1)
+        reasons = []
+        if sem > 15:    reasons.append("تطابق دلالي قوي مع متطلبات الوظيفة")
+        if skills_score > 15: reasons.append(f"يمتلك {int(skills_score/40*len(job_skills))} مهارة مطلوبة")
+        if exp_score >= 15:  reasons.append("يستوفي متطلبات الخبرة")
+
         return {
-            'compound': scores['compound'],
-            'positive': scores['pos'],
-            'neutral': scores['neu'],
-            'negative': scores['neg'],
-            'overall_sentiment': 'positive' if scores['compound'] > 0.1 else 'negative' if scores['compound'] < -0.1 else 'neutral'
+            'match_score': total,
+            'semantic_score': round(sem, 1),
+            'skills_score': round(skills_score, 1),
+            'experience_score': round(exp_score, 1),
+            'reasons': reasons
         }
-    
-    async def _analyze_skill_gaps(self, candidate_skills: List[str]) -> Dict[str, Any]:
-        """تحليل فجوات المهارات"""
-        try:
-            # Market demand analysis
-            market_skills = await self._get_market_trending_skills()
-            
-            # Find gaps
-            missing_skills = []
-            for category, skills in market_skills.items():
-                for skill in skills[:5]:  # Top 5 skills per category
-                    if not any(skill.lower() in cs.lower() for cs in candidate_skills):
-                        missing_skills.append({
-                            'skill': skill,
-                            'category': category,
-                            'demand_level': 'high'
-                        })
-            
-            return {
-                'missing_skills': missing_skills[:10],  # Top 10 missing skills
-                'skill_categories_covered': self._categorize_skills(candidate_skills),
-                'market_alignment_score': self._calculate_market_alignment(candidate_skills, market_skills),
-                'priority_skills': missing_skills[:3]  # Top 3 priority skills
-            }
-            
-        except Exception as e:
-            logger.warning(f"Skill gap analysis failed: {e}")
-            return {'missing_skills': [], 'market_alignment_score': 0.5}
-    
-    def _analyze_career_progression(self, experience_list: List[Dict]) -> Dict[str, Any]:
-        """تحليل التطور المهني"""
-        if not experience_list:
-            return {'progression_score': 0, 'trend': 'unknown'}
-        
-        # Sort by dates
-        sorted_experience = sorted(experience_list, key=lambda x: x.get('start_date', ''), reverse=True)
-        
-        # Calculate progression indicators
-        title_progression = self._analyze_title_progression(sorted_experience)
-        responsibility_growth = self._analyze_responsibility_growth(sorted_experience)
-        industry_consistency = self._analyze_industry_consistency(sorted_experience)
-        
-        progression_score = (title_progression + responsibility_growth + industry_consistency) / 3
-        
+
+    # ═══════════════════════════════════════════════════
+    # توليد أسئلة المقابلة
+    # ═══════════════════════════════════════════════════
+    def generate_interview_questions(
+        self,
+        job_title: str,
+        job_description: str,
+        candidate_skills: List[str],
+        interview_type: str = "technical"
+    ) -> List[Dict]:
+        if GEMINI_AVAILABLE:
+            return _gemini_generate_questions(job_title, job_description, candidate_skills, interview_type)
+        return _local_questions(job_title, candidate_skills, interview_type)
+
+    # ═══════════════════════════════════════════════════
+    # تقييم إجابة المقابلة
+    # ═══════════════════════════════════════════════════
+    def evaluate_interview_response(self, question: str, response: str, question_type: str) -> Dict:
+        words = response.split()
+        word_count = len(words)
+
+        # طول الإجابة
+        if word_count < 10:   length_score = 2
+        elif word_count < 50: length_score = 5
+        elif word_count < 150: length_score = 8
+        else:                  length_score = 10
+
+        # جودة المحتوى
+        positive_kw = ['نجحت','حققت','طورت','أنجزت','قدت','بنيت','حللت','حللت','نفذت',
+                        'achieved','built','led','solved','improved','developed','implemented']
+        content_score = min(sum(1 for kw in positive_kw if kw in response.lower()), 10)
+
+        overall = round((length_score + content_score) / 2, 1)
+        feedback = []
+        if length_score < 5:   feedback.append("قدم إجابة أكثر تفصيلاً")
+        if content_score < 4:  feedback.append("أضف أمثلة وإنجازات محددة")
+        if overall >= 8:       feedback.append("إجابة ممتازة وشاملة")
+
+        return {'score': overall, 'length_score': length_score, 'content_score': content_score,
+                'feedback': feedback, 'word_count': word_count}
+
+    # ═══════════════════════════════════════════════════
+    # تحليل أداء المقابلة
+    # ═══════════════════════════════════════════════════
+    async def analyze_interview_performance(self, interview_data: Dict) -> Dict:
+        transcript = interview_data.get('transcript', '')
+        notes      = interview_data.get('notes', '')
+        full_text  = f"{transcript} {notes}"
+
+        # حساب درجات حقيقية من النص
+        comm  = _score_communication(full_text)
+        tech  = _score_technical(full_text)
+        conf  = _score_confidence(full_text)
+        total = round((comm * 0.35 + tech * 0.40 + conf * 0.25), 1)
+
+        strengths, improvements = _extract_feedback(full_text, comm, tech, conf)
+
+        if GEMINI_AVAILABLE and transcript:
+            summary = await _gemini_interview_summary(transcript, total)
+            recommendation = await _gemini_recommendation(total)
+        else:
+            summary = _local_interview_summary(total, comm, tech, conf)
+            recommendation = "ينصح بالمضي قدماً" if total >= 60 else "يحتاج إلى مزيد من التقييم"
+
         return {
-            'progression_score': progression_score,
-            'title_progression': title_progression,
-            'responsibility_growth': responsibility_growth,
-            'industry_consistency': industry_consistency,
-            'trend': 'upward' if progression_score > 0.7 else 'stable' if progression_score > 0.4 else 'unclear',
-            'career_highlights': self._extract_career_highlights(sorted_experience)
+            'score': total,
+            'communication_score': comm,
+            'technical_competency': tech,
+            'confidence_score': conf,
+            'market_match': min(total + 5, 100),
+            'strengths': strengths,
+            'improvement_areas': improvements,
+            'summary': summary,
+            'hiring_recommendation': recommendation
         }
-    
-    def _calculate_keyword_density(self, text: str) -> Dict[str, float]:
-        """حساب كثافة الكلمات المفتاحية"""
-        words = text.lower().split()
-        total_words = len(words)
-        
-        if total_words == 0:
-            return {}
-        
-        # Count keywords from skills database
-        keyword_counts = {}
-        for category, skills in self.skills_database.items():
-            for skill in skills:
-                skill_words = skill.lower().split()
-                count = 0
-                for i in range(len(words) - len(skill_words) + 1):
-                    if words[i:i+len(skill_words)] == skill_words:
-                        count += 1
-                
-                if count > 0:
-                    keyword_counts[skill] = count / total_words
-        
-        return keyword_counts
-    
-    async def _calculate_ai_confidence(self, candidate: Dict, job: Dict) -> float:
-        """حساب ثقة الذكاء الاصطناعي في المطابقة باستخدام Cosine Similarity"""
-        try:
-            # دمج النصوص للمطابقة الدلالية
-            candidate_text = " ".join(candidate.get('skills', [])) + " " + str(candidate.get('summary', ''))
-            job_text = " ".join(job.get('required_skills', [])) + " " + str(job.get('description', ''))
-            
-            # حساب التشابه الدلالي (Cosine Similarity)
-            vectorizer = TfidfVectorizer(stop_words='english')
-            tfidf_matrix = vectorizer.fit_transform([candidate_text, job_text])
-            semantic_score = float(cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0])
-            
-            factors = []
-            factors.append(semantic_score * 0.4) # زيادة وزن المطابقة الدلالية
-            
-            # Skill match compatibility
-            skill_match = self._calculate_skill_compatibility(
-                candidate.get('skills', []),
-                job.get('required_skills', [])
-            )
-            factors.append(skill_match * 0.3)
-            
-            # Experience level match
-            exp_match = self._calculate_experience_fit(
-                candidate.get('experience', []),
-                job.get('experience_required', 0)
-            )
-            factors.append(exp_match * 0.3)
-            
-            # Education relevance
-            edu_match = self._calculate_education_relevance(
-                candidate.get('education', []),
-                job.get('education_requirements', [])
-            )
-            factors.append(edu_match * 0.2)
-            
-            # Location compatibility
-            location_match = self._calculate_location_compatibility(
-                candidate.get('location'),
-                job.get('location')
-            )
-            factors.append(location_match * 0.1)
-            
-            confidence = sum(factors)
-            return min(max(confidence, 0.0), 1.0)  # Clamp between 0 and 1
-            
-        except Exception as e:
-            logger.warning(f"AI confidence calculation failed: {e}")
-            return 0.5
-    
-    def _calculate_skill_compatibility(self, candidate_skills: List[str], required_skills: List[str]) -> float:
-        """حساب توافق المهارات"""
-        if not required_skills:
-            return 1.0
-        
-        if not candidate_skills:
-            return 0.0
-        
-        # Convert to lowercase for comparison
-        candidate_skills_lower = [skill.lower() for skill in candidate_skills]
-        required_skills_lower = [skill.lower() for skill in required_skills]
-        
-        matches = 0
-        for req_skill in required_skills_lower:
-            if any(req_skill in cand_skill or cand_skill in req_skill for cand_skill in candidate_skills_lower):
-                matches += 1
-        
-        return matches / len(required_skills)
-    
-    async def get_ai_insights(self, data_type: str, data: Dict) -> Dict[str, Any]:
-        """الحصول على رؤى الذكاء الاصطناعي"""
-        try:
-            insights = {}
-            
-            if data_type == 'market_analysis':
-                insights = await self._analyze_job_market_trends(data)
-            elif data_type == 'hiring_trends':
-                insights = await self._analyze_hiring_trends(data)
-            elif data_type == 'skill_demand':
-                insights = await self._analyze_skill_demand_trends(data)
-            elif data_type == 'salary_trends':
-                insights = await self._analyze_salary_trends(data)
-            elif data_type == 'diversity_analysis':
-                insights = await self._analyze_diversity_metrics(data)
-            
-            return {
-                'insights': insights,
-                'confidence_level': self._calculate_insight_confidence(insights),
-                'generated_at': datetime.now().isoformat(),
-                'data_freshness': self._assess_data_freshness(data)
-            }
-            
-        except Exception as e:
-            logger.error(f"Error generating AI insights: {e}")
-            raise
-    
-    async def optimize_job_posting(self, job_data: Dict) -> Dict[str, Any]:
-        """تحسين إعلان الوظيفة"""
-        try:
-            optimization = {
-                'title_suggestions': await self._suggest_better_titles(job_data.get('title', '')),
-                'description_improvements': await self._improve_job_description(job_data.get('description', '')),
-                'keyword_optimization': await self._optimize_job_keywords(job_data),
-                'inclusivity_improvements': self._suggest_inclusivity_improvements(job_data),
-                'market_positioning': await self._analyze_market_positioning(job_data),
-                'expected_response_rate': await self._predict_response_rate(job_data),
-                'optimization_score': 0  # Will be calculated
-            }
-            
-            # Calculate overall optimization score
-            optimization['optimization_score'] = self._calculate_optimization_score(optimization)
-            
-            return optimization
-            
-        except Exception as e:
-            logger.error(f"Error optimizing job posting: {e}")
-            raise
-    
+
+    # ═══════════════════════════════════════════════════
+    # الشات بوت
+    # ═══════════════════════════════════════════════════
+    async def chat_bot(self, message: str, context: Optional[Dict] = None) -> Dict:
+        if GEMINI_AVAILABLE:
+            response = await _gemini_chat(message, context)
+        else:
+            response = _local_chat(message)
+        return {'response': response, 'timestamp': datetime.now().isoformat(), 'used_ai': GEMINI_AVAILABLE}
+
+    # ═══════════════════════════════════════════════════
+    # اقتراحات تحسين السيرة
+    # ═══════════════════════════════════════════════════
     async def _generate_resume_suggestions(self, analysis: Dict) -> List[str]:
-        """توليد اقتراحات لتحسين السيرة الذاتية"""
-        suggestions = []
-        
-        skills = analysis.get('skills', [])
-        experience = analysis.get('experience', [])
+        skills  = analysis.get('skills', [])
+        exp     = analysis.get('experience_years', 0)
         summary = analysis.get('summary', '')
-        
+        edu     = analysis.get('education', {})
+
+        suggestions = []
         if len(skills) < 5:
-            suggestions.append("أضف المزيد من المهارات التقنية المتعلقة بمجالك لزيادة فرص ظهورك في نتائج البحث.")
-        
-        if not summary or len(summary) < 50:
-            suggestions.append("قم بكتابة ملخص مهني قوي (3-5 أسطر) يبرز أهم إنجازاتك وقيمتك المضافة.")
-            
-        if not experience:
-            suggestions.append("تأكد من إضافة تفاصيل الخبرة العملية السابقة، بما في ذلك المسميات الوظيفية والمسؤوليات.")
-        else:
-            for exp in experience:
-                desc = exp.get('description', '')
-                if len(desc) < 30:
-                    suggestions.append(f"قم بتوسيع وصف خبرتك في {exp.get('company', 'شركتك السابقة')} ليتضمن إنجازات محددة.")
-        
-        if not analysis.get('education'):
-            suggestions.append("لم يتم العثور على مؤهلات تعليمية. تأكد من إضافة درجتك العلمية والجامعة.")
-            
-        # Add general AI-driven suggestions
-        suggestions.append("استخدم كلمات مفتاحية (Keywords) مستمدة من إعلانات الوظائف التي تستهدفها.")
-        suggestions.append("ركز على النتائج والأرقام (مثلاً: زيادة المبيعات بنسبة 20%) بدلاً من المهام فقط.")
-        
-        return suggestions
+            suggestions.append("أضف المزيد من المهارات التقنية لزيادة فرص ظهورك في نتائج البحث.")
+        if not summary or len(summary) < 30:
+            suggestions.append("اكتب ملخصاً مهنياً قوياً (3-5 أسطر) يبرز أهم إنجازاتك.")
+        if exp == 0:
+            suggestions.append("أضف خبراتك العملية بتفاصيل المسؤوليات والإنجازات.")
+        if not edu.get('level') or edu.get('level') == 'bachelor':
+            suggestions.append("وضح مؤهلاتك التعليمية والتخصص بشكل واضح.")
+        suggestions.append("استخدم أرقاماً وإنجازات قابلة للقياس (مثل: زيادة الأداء 30%).")
+        suggestions.append("أضف كلمات مفتاحية من إعلانات الوظائف التي تستهدفها.")
 
-    async def _calculate_market_compatibility(self, analysis: Dict) -> float:
-        """حساب درجة التوافق مع السوق"""
-        score = 0.5
-        skills = analysis.get('skills', [])
-        
-        # Simple scoring based on skills count and variety
-        if len(skills) > 10:
-            score += 0.2
-        elif len(skills) > 5:
-            score += 0.1
-            
-        # Check for trending skills
-        trending = ['python', 'react', 'javascript', 'ai', 'cloud', 'docker', 'sql']
-        found_trending = [s for s in skills if s.lower() in trending]
-        score += len(found_trending) * 0.05
-        
-        return min(score, 1.0)
+        if GEMINI_AVAILABLE and len(skills) > 0:
+            extra = await _gemini_resume_tip(skills, exp)
+            if extra:
+                suggestions.insert(0, extra)
 
-    def _analyze_sentiment(self, text: str) -> Dict:
-        """تحليل نبرة النص"""
-        if self.sentiment_analyzer:
-            return self.sentiment_analyzer.polarity_scores(text)
-        return {'compound': 0, 'pos': 0, 'neu': 0, 'neg': 0}
-
-    async def _analyze_skill_gaps(self, skills: List[str]) -> List[str]:
-        """تحليل فجوة المهارات"""
-        # In a real scenario, compare with market demands
-        return ["Cloud Computing", "System Design", "Unit Testing"]
-
-    def _analyze_career_progression(self, experience: List[Dict]) -> str:
-        """تحليل التطور المهني"""
-        if not experience:
-            return "مبتدئ"
-        return "تطور مستقر"
-
-    def _analyze_education_relevance(self, education: List[Dict]) -> float:
-        """تحليل علاقة التعليم بالمجال"""
-        return 0.8
-
-    def _calculate_keyword_density(self, text: str) -> Dict:
-        """حساب كثافة الكلمات المفتاحية"""
-        return {"keywords": 0.05}
-
-    def _calculate_optimization_score(self, optimization: Dict) -> float:
-        """حساب درجة التحسين الكلية"""
-        return 0.85
-
-    def _calculate_insight_confidence(self, insights: Dict) -> float:
-        return 0.9
-
-    def _assess_data_freshness(self, data: Dict) -> str:
-        return "حديث جداً"
-
-    async def _calculate_ai_confidence(self, candidate, job) -> float:
-        return 0.85
-
-    def _calculate_experience_fit(self, candidate_exp, required_years) -> float:
-        return 0.9
-
-    async def _predict_culture_fit(self, candidate, job) -> float:
-        return 0.8
-
-    def _calculate_salary_fit(self, expected, offered) -> float:
-        return 1.0
-
-    async def _assess_growth_potential(self, candidate, job) -> float:
-        return 0.75
-
-    async def _generate_match_reasons(self, candidate, job) -> List[str]:
-        return ["مهاراتك تتطابق تماماً", "خبرتك في نفس المجال", "موقعك الجغرافي مناسب"]
-
-    def _analyze_communication_skills(self, transcript: str) -> float:
-        return 0.85
-
-    async def _assess_technical_answers(self, questions: List) -> float:
-        return 0.8
-
-    def _analyze_behavioral_responses(self, responses: List) -> List[str]:
-        return ["إيجابي", "واثق"]
-
-    def _detect_stress_patterns(self, data: Dict) -> List[str]:
-        return []
-
-    async def _identify_improvement_areas(self, analysis: Dict) -> List[str]:
-        return ["التحدث ببطء أكثر", "تقديم أمثلة أكثر تفصيلاً"]
-
-    async def _generate_hiring_recommendation(self, analysis: Dict) -> str:
-        return "ينصح بشدة بالمضي قدماً"
-
-    async def _suggest_follow_up_questions(self, analysis: Dict) -> List[str]:
-        return ["كيف تتعامل مع الضغط؟", "ما هو أكبر تحدي واجهته؟"]
-
-    async def _suggest_career_paths(self, profile: Dict) -> List[str]:
-        return ["Software Architect", "Engineering Manager"]
-
-    async def _recommend_skill_development(self, profile: Dict) -> List[Dict]:
-        return [{"skill": "AWS", "reason": "مطلوب بشدة في السوق"}]
-
-    def _extract_prediction_features(self, candidate, job) -> Dict:
-        return {"skill_match": 0.8, "experience_match": 0.9}
-
-    def _calculate_prediction_confidence(self, features) -> float:
-        return 0.95
-
-    def _identify_success_factors(self, features) -> List[str]:
-        return ["المهارات التقنية القوية"]
-
-    def _identify_risk_factors(self, features) -> List[str]:
-        return ["نقص الخبرة القيادية"]
-
-    async def _suggest_onboarding_plan(self, candidate, job) -> Dict:
-        return {"weeks": 4, "focus": "System Architecture"}
-
-    def _define_performance_metrics(self, job) -> List[str]:
-        return ["Code Quality", "Sprint Velocity"]
-
-    async def _predict_retention(self, candidate, job) -> float:
-        return 0.9
-
-    async def _generate_base_description(self, requirements) -> str:
-        return "وصف وظيفي أساسي"
-
-    async def _optimize_job_title(self, title) -> str:
-        return title
-
-    async def _generate_compelling_summary(self, requirements) -> str:
-        return "ملخص وظيفي جذاب"
-
-    async def _generate_detailed_responsibilities(self, requirements) -> List[str]:
-        return ["تطوير البرمجيات", "إدارة الفريق"]
-
-    async def _optimize_requirements(self, requirements) -> List[str]:
-        return requirements
-
-    async def _suggest_competitive_benefits(self, requirements) -> List[str]:
-        return ["تأمين طبي", "ساعات عمل مرنة"]
-
-    async def _generate_culture_description(self, company_info) -> str:
-        return "بيئة عمل محفزة ومبتكرة"
-
-    async def _extract_seo_keywords(self, requirements) -> List[str]:
-        return ["Full Stack Developer", "React", "Node.js"]
-
-    def _analyze_inclusivity(self, text) -> float:
-        return 0.95
-
-    def _calculate_readability(self, text) -> float:
-        return 0.85
-
-    async def _assess_market_competitiveness(self, requirements) -> float:
-        return 0.75
-
-    def _assess_insight_confidence(self, insights) -> float:
-        return 0.9
-
-    def _assess_data_freshness(self, data) -> str:
-        return "حديث"
-
-    def _calculate_insight_confidence(self, insights) -> float:
-        return 0.9
-
-    
-    def __del__(self):
-        """تنظيف الموارد عند إنهاء الكائن"""
-        try:
-            # Clear cache
-            self.models_cache.clear()
-            logger.info("AI service resources cleaned up")
-        except:
-            pass
+        return suggestions[:6]
 
 
-class ResumeParser:
-    """محلل السيرة الذاتية المتقدم"""
-    
-    def __init__(self, skills_db: Dict = None):
-        self.skills_db = skills_db or {}
-    
-    async def parse_resume(self, resume_text: str) -> Dict[str, Any]:
-        """تحليل السيرة الذاتية"""
-        try:
-            analysis = {
-                'contact_info': self._extract_contact_info(resume_text),
-                'skills': self._extract_skills(resume_text),
-                'experience': self._extract_experience(resume_text),
-                'education': self._extract_education(resume_text),
-                'languages': self._extract_languages(resume_text),
-                'certifications': self._extract_certifications(resume_text),
-                'summary': self._extract_summary(resume_text),
-                'experience_years': self._calculate_experience_years(resume_text),
-                'score': 0.0, # Placeholder, will be calculated in enhanced analysis
-                'embedding': None
-            }
-            
-            return analysis
-        except Exception as e:
-            logger.error(f"Resume parsing error: {e}")
-            return {
-                'skills': [],
-                'experience_years': 0,
-                'education': {},
-                'summary': "",
-                'score': 0.0,
-                'embedding': None
-            }
-    
-    def _calculate_experience_years(self, text: str) -> int:
-        """حساب سنوات الخبرة من النص"""
-        import re
-        # البحث عن أرقام متبوعة بكلمة "سنة" أو "years"
-        patterns = [
-            r'(\d+)\s+years',
-            r'(\d+)\s+year',
-            r'(\d+)\s+سنوات',
-            r'(\d+)\s+سنة'
+# ═══════════════════════════════════════════════════════════
+# دوال مساعدة
+# ═══════════════════════════════════════════════════════════
+
+def extract_skills(text: str) -> List[str]:
+    text_lower = text.lower()
+    found = []
+    for skill in ALL_SKILLS:
+        pattern = r'\b' + re.escape(skill) + r'\b'
+        if re.search(pattern, text_lower):
+            found.append(skill)
+    return list(set(found))
+
+
+def extract_experience_years(text: str) -> int:
+    patterns = [
+        r'(\d+)\+?\s*years?\s*(?:of\s*)?experience',
+        r'(\d+)\+?\s*yrs?\s*(?:of\s*)?experience',
+        r'خبرة\s*(\d+)\s*سنوات?',
+        r'(\d+)\s*سنوات?\s*خبرة',
+        r'(\d+)\+?\s*years?\s*in'
+    ]
+    max_years = 0
+    for p in patterns:
+        for m in re.findall(p, text, re.IGNORECASE):
+            max_years = max(max_years, int(m))
+    return max_years
+
+
+def extract_education(text: str) -> Dict:
+    t = text.lower()
+    level = 'bachelor'
+    if re.search(r'ph\.?d|doctorate|دكتوراه', t): level = 'phd'
+    elif re.search(r'master|mba|ماجستير', t): level = 'master'
+    elif re.search(r'bachelor|بكالوريوس|ليسانس', t): level = 'bachelor'
+    elif re.search(r'diploma|دبلوم', t): level = 'diploma'
+
+    field = None
+    for f in ['computer science','engineering','business','mathematics','information technology',
+               'علوم حاسوب','هندسة','تقنية معلومات','إدارة']:
+        if f in t:
+            field = f
+            break
+    return {'level': level, 'field': field}
+
+
+def _compute_resume_score(skills, exp_years, education, text) -> float:
+    score  = min(len(skills) * 3.5, 40)
+    score += min(exp_years * 4, 30)
+    edu_s  = {'phd': 20, 'master': 18, 'bachelor': 15, 'diploma': 10}
+    score += edu_s.get(education.get('level',''), 8)
+    score += min(len(text) / 200, 10)
+    return min(score, 100)
+
+
+def _build_summary(skills, exp_years, education) -> str:
+    parts = []
+    if exp_years > 0:  parts.append(f"{exp_years} سنوات خبرة")
+    if education.get('field'): parts.append(f"{education['level']} في {education['field']}")
+    if skills: parts.append(f"مهارات: {', '.join(skills[:5])}")
+    return " | ".join(parts) if parts else "لم يتم استخراج ملخص"
+
+
+def _tfidf_vector(text: str, size: int = 100) -> List[float]:
+    """تحويل نص إلى vector حقيقي باستخدام hash features"""
+    words = re.findall(r'\b\w+\b', text.lower())
+    vec = [0.0] * size
+    for w in words:
+        idx = int(hashlib.md5(w.encode()).hexdigest(), 16) % size
+        vec[idx] += 1.0
+    norm = (sum(v**2 for v in vec) ** 0.5) or 1.0
+    return [round(v / norm, 6) for v in vec]
+
+
+def _score_communication(text: str) -> float:
+    pos_kw = ['clearly','effectively','presented','communicated','explained','articulated',
+               'بوضوح','شرحت','تواصلت','قدمت']
+    score = 50 + min(sum(5 for kw in pos_kw if kw in text.lower()), 40)
+    # طول النص كمؤشر للتفاعل
+    score += min(len(text.split()) / 50, 10)
+    return min(round(score, 1), 100)
+
+
+def _score_technical(text: str) -> float:
+    tech_terms = extract_skills(text)
+    score = 40 + min(len(tech_terms) * 5, 50)
+    return min(round(score, 1), 100)
+
+
+def _score_confidence(text: str) -> float:
+    conf_kw  = ['قدرت','نجحت','حققت','أنجزت','i am','i have','successfully','achieved','led']
+    doubt_kw = ['ربما','أعتقد','ليس متأكد','maybe','i think','not sure','possibly']
+    conf  = sum(1 for kw in conf_kw if kw in text.lower())
+    doubt = sum(1 for kw in doubt_kw if kw in text.lower())
+    score = 60 + (conf * 5) - (doubt * 5)
+    return min(max(round(score, 1), 0), 100)
+
+
+def _extract_feedback(text, comm, tech, conf):
+    strengths, improvements = [], []
+    if comm >= 70: strengths.append("مهارات تواصل ممتازة")
+    else: improvements.append("تحسين أسلوب التواصل والوضوح")
+    if tech >= 70: strengths.append("كفاءة تقنية عالية")
+    else: improvements.append("تعميق المعرفة التقنية")
+    if conf >= 70: strengths.append("ثقة عالية بالنفس")
+    else: improvements.append("تعزيز الثقة في الإجابات")
+    if len(text.split()) > 200: strengths.append("إجابات مفصلة وشاملة")
+    return strengths, improvements
+
+
+def _local_interview_summary(total, comm, tech, conf) -> str:
+    level = "ممتاز" if total >= 80 else "جيد جداً" if total >= 65 else "متوسط" if total >= 50 else "يحتاج تحسين"
+    return (f"أداء {level} بنسبة {total}%. "
+            f"التواصل: {comm}% | التقني: {tech}% | الثقة: {conf}%")
+
+
+def _local_chat(message: str) -> str:
+    msg = message.lower()
+    if any(w in msg for w in ['وظيفة','عمل','job','hire']): 
+        return "يمكنني مساعدتك في البحث عن الوظائف المناسبة. ما هو مجالك أو تخصصك؟"
+    if any(w in msg for w in ['سيرة','cv','resume']): 
+        return "لدينا أداة تحليل وتحسين السيرة الذاتية. هل تريد رفع سيرتك الآن؟"
+    if any(w in msg for w in ['مقابلة','interview']): 
+        return "التحضير للمقابلة مهم. يمكنني مساعدتك بأسئلة تدريبية في مجالك."
+    if any(w in msg for w in ['راتب','salary']): 
+        return "الراتب يعتمد على مهاراتك وخبرتك وموقعك. ما هو مجالك لأعطيك تقديرات أدق؟"
+    return "مرحباً! أنا مساعدك الذكي في Jobify. كيف يمكنني مساعدتك في رحلتك المهنية؟"
+
+
+def _local_questions(job_title, candidate_skills, interview_type) -> List[Dict]:
+    if interview_type == "technical":
+        qs = [
+            {"question": f"صف تجربتك مع التقنيات المطلوبة لدور {job_title}.", "type": "experience", "expected_duration": 5},
+            {"question": "أعطنا مثالاً على مشكلة تقنية معقدة حللتها وكيف تعاملت معها.", "type": "problem_solving", "expected_duration": 7},
+            {"question": "كيف تضمن جودة الكود الذي تكتبه؟", "type": "quality", "expected_duration": 5},
+            {"question": "كيف تتابع أحدث التطورات التقنية في مجالك؟", "type": "learning", "expected_duration": 4},
         ]
-        
-        years = 0
-        for pattern in patterns:
-            matches = re.findall(pattern, text)
-            if matches:
-                found_years = [int(m) for m in matches]
-                years = max(years, max(found_years))
-        
-        return min(years, 40) # حد أقصى منطقي
+        for skill in candidate_skills[:2]:
+            qs.append({"question": f"أعطنا مثالاً على مشروع استخدمت فيه {skill}.", "type": "skill_specific", "expected_duration": 6})
+    elif interview_type == "behavioral":
+        qs = [
+            {"question": "أخبرنا عن موقف تعاملت فيه مع ضغط شديد في العمل.", "type": "stress", "expected_duration": 5},
+            {"question": "كيف تتعامل مع الخلافات مع زملائك؟", "type": "conflict", "expected_duration": 5},
+            {"question": "أعطنا مثالاً على قيادتك لمشروع أو فريق.", "type": "leadership", "expected_duration": 6},
+            {"question": "أخبرنا عن فشل مررت به وما تعلمته منه.", "type": "growth", "expected_duration": 5},
+        ]
+    else:  # hr
+        qs = [
+            {"question": f"لماذا تريد العمل في هذه الوظيفة؟", "type": "motivation", "expected_duration": 4},
+            {"question": "أين تريد أن تكون مهنياً بعد 5 سنوات؟", "type": "goals", "expected_duration": 4},
+            {"question": "ما هي نقاط قوتك الرئيسية؟", "type": "strengths", "expected_duration": 4},
+            {"question": "ما هي توقعاتك للراتب؟", "type": "salary", "expected_duration": 3},
+        ]
+    return qs[:6]
 
-    def _extract_contact_info(self, text: str) -> Dict[str, str]:
-        """استخراج معلومات الاتصال"""
-        import re
-        
-        contact_info = {}
-        
-        # Email extraction
-        email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
-        emails = re.findall(email_pattern, text)
-        if emails:
-            contact_info['email'] = emails[0]
-        
-        # Phone extraction
-        phone_pattern = r'(\+?\d{1,4}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}'
-        phones = re.findall(phone_pattern, text)
-        if phones:
-            contact_info['phone'] = ''.join(phones[0]) if isinstance(phones[0], tuple) else phones[0]
-        
-        return contact_info
-    
-    def _extract_skills(self, text: str) -> List[str]:
-        """استخراج المهارات"""
-        # This would use more sophisticated NLP techniques
-        found_skills = []
-        text_lower = text.lower()
-        
-        for category, skills in self.skills_db.items():
-            for skill in skills:
-                if skill.lower() in text_lower:
-                    found_skills.append(skill)
-        
-        return list(set(found_skills))
-    
-    def _extract_experience(self, text: str) -> List[Dict]:
-        """استخراج الخبرة العملية"""
-        # Simplified implementation
-        return []
-    
-    def _extract_education(self, text: str) -> List[Dict]:
-        """استخراج المؤهلات التعليمية"""
-        # Simplified implementation
-        return []
-    
-    def _extract_languages(self, text: str) -> List[str]:
-        """استخراج اللغات"""
-        # Simplified implementation
-        return []
-    
-    def _extract_certifications(self, text: str) -> List[str]:
-        """استخراج الشهادات"""
-        # Simplified implementation
-        return []
-    
-    def _extract_summary(self, text: str) -> str:
-        """استخراج الملخص المهني"""
-        # Simplified implementation
+
+# ── Gemini Functions ──────────────────────────────────────
+
+def _gemini_generate_questions(job_title, job_description, candidate_skills, interview_type) -> List[Dict]:
+    try:
+        skills_text = ', '.join(candidate_skills[:5]) if candidate_skills else 'غير محدد'
+        type_map = {'technical': 'تقنية', 'behavioral': 'سلوكية', 'hr': 'موارد بشرية'}
+        prompt = f"""أنت خبير توظيف. أنشئ 5 أسئلة مقابلة {type_map.get(interview_type,'تقنية')} لوظيفة {job_title}.
+مهارات المرشح: {skills_text}
+وصف الوظيفة: {job_description[:300]}
+
+أرجع JSON فقط بهذا الشكل:
+[{{"question": "السؤال", "type": "النوع", "expected_duration": رقم}}]"""
+        response = gemini_model.generate_content(prompt)
+        text = response.text.strip()
+        text = re.sub(r'```json|```', '', text).strip()
+        questions = json.loads(text)
+        return questions[:6] if isinstance(questions, list) else _local_questions(job_title, candidate_skills, interview_type)
+    except Exception as e:
+        logger.warning(f"Gemini questions failed: {e}")
+        return _local_questions(job_title, candidate_skills, interview_type)
+
+
+async def _gemini_chat(message: str, context: Optional[Dict]) -> str:
+    try:
+        system = """أنت مساعد ذكي لمنصة Jobify للتوظيف. ساعد المستخدمين في:
+- البحث عن وظائف وتحسين السيرة الذاتية
+- التحضير للمقابلات
+- تطوير المسار المهني
+أجب بالعربية بشكل مختصر ومفيد (3-4 جمل كحد أقصى)."""
+        full_prompt = f"{system}\n\nالمستخدم: {message}\nالمساعد:"
+        response = gemini_model.generate_content(full_prompt)
+        return response.text.strip()
+    except Exception as e:
+        logger.warning(f"Gemini chat failed: {e}")
+        return _local_chat(message)
+
+
+async def _gemini_interview_summary(transcript: str, score: float) -> str:
+    try:
+        prompt = f"""حلل أداء هذا المرشح في المقابلة وقدم ملخصاً باللغة العربية (3 جمل):
+النص: {transcript[:500]}
+الدرجة الإجمالية: {score}/100"""
+        response = gemini_model.generate_content(prompt)
+        return response.text.strip()
+    except:
+        return _local_interview_summary(score, score, score, score)
+
+
+async def _gemini_recommendation(score: float) -> str:
+    if score >= 80: return "ينصح بشدة بتوظيفه - أداء استثنائي"
+    if score >= 65: return "ينصح بالمضي قدماً - أداء جيد جداً"
+    if score >= 50: return "يحتاج تقييماً إضافياً - أداء متوسط"
+    return "لا ينصح حالياً - يحتاج تطوير"
+
+
+async def _gemini_resume_tip(skills: List[str], exp_years: int) -> str:
+    try:
+        prompt = f"""بناءً على مهارات المرشح ({', '.join(skills[:5])}) وخبرته ({exp_years} سنوات)،
+قدم نصيحة واحدة محددة لتحسين سيرته الذاتية في جملتين بالعربية."""
+        response = gemini_model.generate_content(prompt)
+        return response.text.strip()
+    except:
         return ""
 
 
-class JobMatchingEngine:
-    """محرك مطابقة الوظائف"""
-    
-    async def find_matches(self, candidate: Dict, jobs: List[Dict]) -> List[Dict]:
-        """العثور على المطابقات"""
-        matches = []
-        
-        for job in jobs:
-            match_score = self._calculate_match_score(candidate, job)
-            if match_score > 0.3:  # Minimum threshold
-                matches.append({
-                    'job': job,
-                    'match_score': match_score,
-                    'match_details': self._get_match_details(candidate, job)
-                })
-        
-        return sorted(matches, key=lambda x: x['match_score'], reverse=True)
-    
-    def _calculate_match_score(self, candidate: Dict, job: Dict) -> float:
-        """حساب درجة المطابقة"""
-        # Simplified implementation
-        return 0.75  # Placeholder
+# ── Sub-services (placeholders يستخدمها الكود القديم) ─────
 
+class ResumeParser:
+    async def parse_resume(self, text):
+        return {
+            'skills': extract_skills(text),
+            'experience_years': extract_experience_years(text),
+            'education': extract_education(text),
+            'summary': ''
+        }
+
+class JobMatchingEngine:
+    async def find_matches(self, candidate, jobs):
+        return [{'job': j, 'match_score': 50} for j in jobs]
 
 class InterviewAnalyzer:
-    """محلل المقابلات"""
-    
-    async def analyze_performance(self, interview_data: Dict) -> Dict[str, Any]:
-        """تحليل أداء المقابلة"""
-        analysis = {
-            'overall_score': 0.8,  # Placeholder
-            'strengths': ['Good communication', 'Technical knowledge'],
-            'weaknesses': ['Nervousness', 'Limited leadership examples'],
-            'recommendations': ['Practice behavioral questions', 'Prepare leadership examples']
-        }
-        
-        return analysis
+    async def analyze_performance(self, data):
+        return {'score': 70, 'summary': 'تحليل قيد المعالجة'}
 
 
-# Export the main service
+# ── Global instance ───────────────────────────────────────
 ai_service = EnhancedAIService()
-
-def get_ai_service():
-    """الحصول على خدمة الذكاء الاصطناعي"""
-    return ai_service
