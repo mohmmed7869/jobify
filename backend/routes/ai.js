@@ -1,5 +1,4 @@
 const express = require('express');
-const OpenAI = require('openai');
 const axios = require('axios');
 const { protect } = require('../middleware/auth');
 const { 
@@ -14,10 +13,33 @@ const Application = require('../models/Application');
 
 const router = express.Router();
 
-// إعداد OpenAI
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// ─── إعداد Gemini API ─────────────────────────────────
+let geminiModel = null;
+try {
+  const { GoogleGenerativeAI } = require('@google/generative-ai');
+  const GEMINI_KEY = process.env.GEMINI_API_KEY;
+  if (GEMINI_KEY) {
+    const genAI = new GoogleGenerativeAI(GEMINI_KEY);
+    geminiModel = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    console.log('✅ Gemini AI initialized');
+  } else {
+    console.warn('⚠️ GEMINI_API_KEY not set - using fallback responses');
+  }
+} catch (e) {
+  console.warn('Gemini SDK not installed:', e.message);
+}
+
+// دالة مساعدة لاستدعاء Gemini
+async function askGemini(prompt, fallback) {
+  if (!geminiModel) return fallback;
+  try {
+    const result = await geminiModel.generateContent(prompt);
+    return result.response.text().trim();
+  } catch (e) {
+    console.error('Gemini error:', e.message);
+    return fallback;
+  }
+}
 
 // @desc    الحصول على توصيات وظائف شخصية
 // @route   GET /api/ai/recommendations
@@ -196,47 +218,39 @@ router.post('/improve-job-requirements', protect, async (req, res) => {
       whyTheseChanges: ''
     };
 
-    const isPlaceholder = !process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY.includes('placeholder');
+    // استخدام Gemini لتحسين المتطلبات
+    if (!suggestions.recommendedSkills || suggestions.recommendedSkills.length === 0) {
+      const geminiPrompt = `أنت خبير توظيف. حلل هذه الوظيفة واقترح تحسينات:
+${jobContext}
+أجب بـ JSON فقط:
+{"recommendedSkills":["مهارة1","مهارة2","مهارة3","مهارة4","مهارة5"],"descriptionImprovement":"نص","suggestedExperience":"نص","suggestedEducation":"نص","whyTheseChanges":"نص"}`;
 
-    if (!isPlaceholder) {
-      try {
-        const completion = await openai.chat.completions.create({
-          model: "gpt-3.5-turbo",
-          messages: [
-            { 
-              role: "system", 
-              content: "أنت خبير توظيف تقني ومحلل بيانات. قم بتحليل متطلبات الوظيفة التالية واقترح تحسينات لجعلها أكثر دقة وجذباً للمتقدمين المؤهلين. أجب بتنسيق JSON حصراً." 
-            },
-            { role: "user", content: `حلل هذه الوظيفة وقدم مقترحات تحسين: ${jobContext}` }
-          ],
-          response_format: { type: "json_object" }
-        });
-
-        const aiResponse = JSON.parse(completion.choices[0].message.content);
-        suggestions = {
-          recommendedSkills: aiResponse.recommendedSkills || [],
-          descriptionImprovement: aiResponse.descriptionImprovement || '',
-          suggestedExperience: aiResponse.suggestedExperience || '',
-          suggestedEducation: aiResponse.suggestedEducation || '',
-          whyTheseChanges: aiResponse.whyTheseChanges || ''
-        };
-      } catch (error) {
-        console.error('OpenAI Error:', error);
-        // التراجع إلى البيانات الافتراضية الذكية في حالة فشل OpenAI
+      const geminiText = await askGemini(geminiPrompt, null);
+      if (geminiText) {
+        try {
+          const cleaned = geminiText.replace(/```json|```/g, '').trim();
+          const parsed = JSON.parse(cleaned);
+          suggestions = {
+            recommendedSkills: parsed.recommendedSkills || [],
+            descriptionImprovement: parsed.descriptionImprovement || '',
+            suggestedExperience: parsed.suggestedExperience || '',
+            suggestedEducation: parsed.suggestedEducation || '',
+            whyTheseChanges: parsed.whyTheseChanges || ''
+          };
+        } catch (_) {}
       }
     }
 
-    // بيانات افتراضية ذكية في حالة عدم وجود مفتاح API أو فشل الاتصال
-    if (suggestions.recommendedSkills.length === 0) {
+    // fallback إذا فشل كل شيء
+    if (!suggestions.recommendedSkills || suggestions.recommendedSkills.length === 0) {
       const commonTechSkills = ['React', 'Node.js', 'TypeScript', 'Docker', 'AWS', 'Next.js', 'Tailwind CSS', 'GraphQL'];
       const currentSkills = job.requirements?.skills || [];
-      
       suggestions = {
         recommendedSkills: commonTechSkills.filter(s => !currentSkills.includes(s)).slice(0, 5),
-        descriptionImprovement: `يُنصح بإضافة قسم خاص بـ "يوم في حياة الموظف" في هذا الدور لتوضيح التوقعات بشكل أفضل. كما يفضل توضيح المشاريع التقنية الأساسية التي سيتم العمل عليها.`,
-        suggestedExperience: job.requirements?.experience || '3-5 سنوات من الخبرة العملية في نفس المجال',
+        descriptionImprovement: 'يُنصح بإضافة قسم خاص بـ "يوم في حياة الموظف" لتوضيح التوقعات.',
+        suggestedExperience: job.requirements?.experience || '3-5 سنوات من الخبرة العملية',
         suggestedEducation: job.requirements?.education || 'بكالوريوس في علوم الحاسوب أو مجال ذي صلة',
-        whyTheseChanges: 'هذه التحسينات تتماشى مع معايير الصناعة لعام 2024 وتساعد خوارزميات AI في المنصة على مطابقة أفضل للمرشحين بنسبة دقة تصل لـ 95%.'
+        whyTheseChanges: 'هذه التحسينات تتماشى مع معايير الصناعة وتحسن نسبة المطابقة.'
       };
     }
 
@@ -315,57 +329,26 @@ router.post('/analyze-resume', protect, async (req, res) => {
       }
     }
 
-    if (!gotoNextStep && !isPlaceholder) {
-      try {
-        const skillsPrompt = `
-          حلل السيرة الذاتية التالية واستخرج:
-          1. المهارات التقنية
-          2. المهارات الشخصية
-          3. سنوات الخبرة
-          4. المؤهلات التعليمية
-          5. نقاط القوة
-          6. مجالات التحسين
-          
-          السيرة الذاتية:
-          ${resumeText}
-          
-          الرد بصيغة JSON فقط:
-          {
-            "skills": ["مهارة1", "مهارة2"],
-            "experience_years": عدد,
-            "education": ["مؤهل1", "مؤهل2"],
-            "strengths": ["نقطة قوة1", "نقطة قوة2"],
-            "improvements": ["تحسين1", "تحسين2"],
-            "overall_score": درجة من 100
-          }
-        `;
+    if (!gotoNextStep) {
+      // استخدام Gemini لتحليل السيرة الذاتية
+      const geminiPrompt = `حلل السيرة الذاتية التالية واستخرج المعلومات بدقة:
+${resumeText}
 
-        const response = await openai.chat.completions.create({
-          model: process.env.AI_MODEL || 'gpt-3.5-turbo',
-          messages: [
-            {
-              role: 'system',
-              content: 'أنت خبير في تحليل السير الذاتية. قدم تحليلاً دقيقاً ومفيداً.'
-            },
-            {
-              role: 'user',
-              content: skillsPrompt
-            }
-          ],
-          max_tokens: 1000,
-          temperature: 0.3
-        });
+أجب بـ JSON فقط:
+{"skills":["مهارة1"],"experience_years":0,"education":["مؤهل1"],"strengths":["نقطة قوة"],"improvements":["تحسين"],"overall_score":75}`;
 
-        const aiAnalysis = JSON.parse(response.choices[0].message.content);
-        
-        analysis.skills = aiAnalysis.skills || [];
-        analysis.experience = aiAnalysis.experience_years || 0;
-        analysis.education = aiAnalysis.education || [];
-        analysis.strengths = aiAnalysis.strengths || [];
-        analysis.improvements = aiAnalysis.improvements || [];
-        analysis.overallScore = aiAnalysis.overall_score || 0;
-      } catch (aiError) {
-        console.error('خطأ في تحليل الذكاء الاصطناعي:', aiError);
+      const geminiText = await askGemini(geminiPrompt, null);
+      if (geminiText) {
+        try {
+          const cleaned = geminiText.replace(/```json|```/g, '').trim();
+          const aiAnalysis = JSON.parse(cleaned);
+          analysis.skills = aiAnalysis.skills || [];
+          analysis.experience = aiAnalysis.experience_years || 0;
+          analysis.education = aiAnalysis.education || [];
+          analysis.strengths = aiAnalysis.strengths || [];
+          analysis.improvements = aiAnalysis.improvements || [];
+          analysis.overallScore = aiAnalysis.overall_score || 0;
+        } catch (_) {}
       }
     }
 
@@ -429,41 +412,40 @@ router.post('/generate-job-description', protect, async (req, res) => {
       });
     }
 
-    const isPlaceholder = !process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY.includes('placeholder');
-    if (isPlaceholder) {
-      const mockDescription = `شركة ${companyInfo || 'رائدة'} هي مؤسسة متميزة في قطاع ${industry || 'الأعمال'}، تهدف إلى تقديم حلول مبتكرة وخدمات عالية الجودة لعملائها. نحن نؤمن بأن موظفينا هم أعظم أصولنا، ونوفر بيئة عمل محفزة تدعم الإبداع والنمو المهني.
+    if (geminiModel) {
+      // استخدام Gemini لإنشاء الوصف الوظيفي
+      const isCompanyDesc = jobTitle === 'وصف الشركة' || jobTitle === 'بروفايل الشركة';
+      const prompt = isCompanyDesc
+        ? `أنشئ وصفاً احترافياً وجذاباً لشركة باللغة العربية:
+اسم الشركة: ${companyInfo || 'غير محدد'}
+المجال: ${industry || 'غير محدد'}
+يجب أن يتضمن: نبذة، رؤية، بيئة العمل، دعوة للانضمام.`
+        : `أنشئ وصف وظيفة احترافي باللغة العربية:
+الوظيفة: ${jobTitle}
+الصناعة: ${industry || 'غير محدد'}
+المستوى: ${experienceLevel || 'متوسط'}
+المهارات: ${keySkills || 'غير محدد'}
+الشركة: ${companyInfo || 'شركة رائدة'}
+اشمل: مقدمة، مسؤوليات (5-7 نقاط)، متطلبات، مزايا.`;
 
-المسؤوليات الرئيسية المتوقعة لوظيفة ${jobTitle}:
-1. التخطيط والتنفيذ الاستراتيجي للمشاريع المتعلقة بـ ${industry}.
-2. التعاون مع الفرق المختلفة لضمان أعلى مستويات الأداء.
-3. تطوير وتحسين سير العمل لزيادة الكفاءة والإنتاجية.
-4. تقديم تقارير دورية للإدارة حول سير العمل والنتائج المحققة.
-5. مواكبة أحدث التطورات والتقنيات في مجال ${industry}.
-
-المتطلبات الأساسية:
-- خبرة عملية في مجال ${industry}.
-- مهارات قوية في ${keySkills || 'العمل الجماعي، حل المشكلات، والتواصل'}.
-- القدرة على العمل تحت الضغط وإدارة المهام المتعددة بفعالية.
-- شغف بالتعلم المستمر والتطور المهني.
-
-نحن نقدم حزمة رواتب تنافسية وبيئة عمل تدعم التوازن بين الحياة المهنية والشخصية.`;
+      const generatedDescription = await askGemini(prompt,
+        `وصف وظيفة ${jobTitle} في قطاع ${industry || 'الأعمال'}. يرجى تفعيل GEMINI_API_KEY للحصول على وصف مخصص.`);
 
       return res.status(200).json({
         success: true,
         data: {
-          description: mockDescription,
+          description: generatedDescription,
           suggestions: [
-            'تأكد من مراجعة الوصف وتخصيصه حسب احتياجات شركتك',
-            'أضف معلومات محددة عن الراتب والمزايا إذا أمكن',
-            'حدد الموقع ونوع العمل (دوام كامل/جزئي/عن بُعد)',
+            'راجع الوصف وخصصه حسب احتياجات شركتك',
+            'أضف معلومات الراتب والمزايا',
+            'حدد نوع العمل والموقع',
             'أضف تاريخ انتهاء التقديم'
-          ],
-          tips: ['هذا وصف مولد بشكل تجريبي (وضع Placeholder) - قم بتفعيل OpenAI للحصول على تحليل مخصص بالكامل']
+          ]
         }
       });
     }
 
-    const isCompanyDesc = jobTitle === 'وصف الشركة' || jobTitle === 'بروفايل الشركة';
+    // Fallback بدون Gemini
 
     const prompt = isCompanyDesc 
       ? `
@@ -560,46 +542,28 @@ router.post('/improve-resume', protect, async (req, res) => {
       });
     }
 
-    const isPlaceholder = !process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY.includes('placeholder');
-    const pythonAiUrl = process.env.PYTHON_AI_SERVICE_URL;
+    const geminiSuggestions = await askGemini(
+      `أنت خبير في السير الذاتية. حلل السيرة التالية وقدم 5 اقتراحات تحسين مفصلة باللغة العربية:\n${resumeText}\n${targetJob ? `الوظيفة المستهدفة: ${targetJob}` : ''}\nأجب بقائمة نقاط واضحة.`,
+      null
+    );
 
-    // محاولة استخدام خدمة بايثون أولاً مع مهلة زمنية قصيرة
-    if (pythonAiUrl) {
-      try {
-        const pythonRes = await axios.post(`${pythonAiUrl}/improve-resume`, {
-          resume_text: resumeText,
-          target_job: targetJob
-        }, { timeout: 3000 }); // مهلة 3 ثوانٍ
-
-        if (pythonRes.data) {
-          return res.status(200).json({
-            success: true,
-            data: {
-              suggestions: pythonRes.data.suggestions,
-              tips: pythonRes.data.tips,
-              overallQuality: pythonRes.data.overall_quality
-            }
-          });
-        }
-      } catch (err) {
-        console.error('Python AI Service Error or Timeout (Improve):', err.message);
-        // نواصل لأسفل للمحاولة عبر OpenAI
-      }
-    }
-
-    if (isPlaceholder) {
+    if (geminiSuggestions) {
+      const suggestions = geminiSuggestions.split('\n').filter(l => l.trim().length > 5).map(l => l.replace(/^[\-\*\d\.]+\s*/, '').trim());
       return res.status(200).json({
         success: true,
         data: {
-          suggestions: [
-            'ركز على النتائج والأرقام (مثلاً: زيادة المبيعات بنسبة 20%)',
-            'استخدم كلمات مفتاحية من إعلان الوظيفة المستهدفة',
-            'اجعل الملخص المهني قصيراً ومركزاً على قيمتك المضافة'
-          ],
-          tips: ['هذه مقترحات عامة - قم بتفعيل OpenAI للحصول على تحليل مخصص بالكامل']
+          suggestions,
+          tips: [
+            'استخدم أرقاماً وإنجازات قابلة للقياس',
+            'لا تتجاوز صفحتين',
+            'استخدم كلمات مفتاحية من إعلان الوظيفة',
+            'راجع الأخطاء الإملائية'
+          ]
         }
       });
     }
+
+    // Fallback
 
     const prompt = `
       حلل السيرة الذاتية التالية وقدم اقتراحات تحسين مفصلة:
