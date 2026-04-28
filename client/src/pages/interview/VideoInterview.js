@@ -121,6 +121,18 @@ const VideoInterview = () => {
   const { socket } = useSocket();
   const { user } = useAuth();
 
+  // ===== إذا لم يكن هناك roomId، أنشئ غرفة جديدة بـ ID فريد =====
+  useEffect(() => {
+    if (!roomId) {
+      // توليد ID فريد لكل مقابلة
+      const newRoomId = typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : 'room-' + Math.random().toString(36).slice(2, 11) + '-' + Date.now().toString(36);
+      // إعادة التوجيه للرابط الفريد مع الاحتفاظ بباقي الـ query params
+      navigate(`/smart-interview/${newRoomId}${location.search}`, { replace: true });
+    }
+  }, [roomId, navigate, location.search]);
+
   // حالة المكون
   const [localStream, setLocalStream] = useState(null);
   const [remoteStreams, setRemoteStreams] = useState(new Map()); // socketId -> MediaStream
@@ -160,6 +172,7 @@ const VideoInterview = () => {
   useEffect(() => {
     if (user?.role === 'employer' || user?.role === 'company') setIsHost(true);
   }, [user]);
+
 
   // ===== مؤقت المكالمة =====
   useEffect(() => {
