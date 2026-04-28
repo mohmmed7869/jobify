@@ -342,13 +342,8 @@ const VideoInterview = () => {
       setParticipants(state.users || []);
       setChatMessages(state.chatMessages || []);
       setIsRecording(state.recording || false);
-
-      // أنشئ اتصال مع كل من هو في الغرفة
-      (state.users || []).forEach(p => {
-        if (p.socketId !== socket.id) {
-          setTimeout(() => createAndSendOffer(p.socketId), 1000);
-        }
-      });
+      // ❌ لا نُرسل offer هنا لتجنب حالة الـ glare
+      // المستخدمون الموجودون مسبقاً سيُرسلون offer لنا عبر حدث 'user-joined'
     };
 
     const onUserJoined = (participant) => {
@@ -359,9 +354,9 @@ const VideoInterview = () => {
         return [...prev, participant];
       });
       toast.success(`${participant.userInfo?.name || 'مستخدم'} انضم للمقابلة`);
-      // الموجود في الغرفة هو من يُرسل الـ offer للداخل الجديد
-      // (يمنع حالة glare حيث يرسل الاثنان offer في نفس الوقت)
-      setTimeout(() => createAndSendOffer(participant.socketId), 800);
+      // ✅ المستخدم الموجود في الغرفة فقط هو من يُرسل الـ offer للداخل الجديد
+      // هذا يمنع حالة الـ glare حيث يرسل الطرفان offer في نفس الوقت
+      setTimeout(() => createAndSendOffer(participant.socketId), 500);
     };
 
     const onUserLeft = ({ socketId }) => {
@@ -452,8 +447,15 @@ const VideoInterview = () => {
   };
 
   const handleJoin = async () => {
-    const stream = await startLocalStream();
-    if (stream) setIsSetupComplete(true);
+    // ✅ أعد استخدام الـ stream الموجود من المعاينة بدلاً من استدعاء getUserMedia مرة ثانية
+    // استدعاؤه مرتين يُسبب تعارضاً في الـ tracks ويمنع إضافتها للـ peer connection
+    if (localStreamRef.current && localStreamRef.current.active) {
+      setIsSetupComplete(true);
+    } else {
+      // إذا فشلت المعاينة، حاول مجدداً
+      const stream = await startLocalStream();
+      if (stream) setIsSetupComplete(true);
+    }
   };
 
   const sendMessage = () => {
