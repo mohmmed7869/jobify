@@ -1,13 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const auth = require('../middleware/auth');
 
 /**
  * GET /api/interview/ice-servers
  * يوفر إعداد ICE servers للـ WebRTC (STUN + TURN)
- * يُستخدم في صفحة مقابلة الفيديو
+ * مسار عام - لا يحتاج مصادقة لضمان عمل مقابلات الفيديو
  */
-router.get('/ice-servers', auth, (req, res) => {
+router.get('/ice-servers', (req, res) => {
   try {
     const iceServers = [
       // STUN Servers - مجانية وموثوقة
