@@ -11,7 +11,11 @@ export const SocketProvider = ({ children }) => {
 
   useEffect(() => {
     if (user) {
-      const backendUrl = process.env.REACT_APP_SOCKET_URL || process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      // Auto-detect: localhost في التطوير، Render في الإنتاج
+      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const backendUrl = process.env.REACT_APP_SOCKET_URL
+        || process.env.REACT_APP_API_URL
+        || (isLocalhost ? 'http://localhost:5000' : 'https://jobify-backend-bnbg.onrender.com');
       const newSocket = io(backendUrl, {
         query: { userId: user._id }
       });

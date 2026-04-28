@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import axios from 'axios';
 
 import {
   FaVideo, FaVideoSlash, FaMicrophone, FaMicrophoneSlash,
@@ -138,7 +139,27 @@ const VideoInterview = () => {
   const [messageInput, setMessageInput] = useState('');
   const [notes, setNotes] = useState('');
   const [isHost, setIsHost] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState('idle'); // idle, connecting, connected, failed
+  const [connectionStatus, setConnectionStatus] = useState('idle');
+  const [iceServers, setIceServers] = useState([
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun.cloudflare.com:3478' },
+    { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+    { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+    { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
+  ]);
+
+  // جلب ICE servers من الـ backend عند بداية الصفحة
+  useEffect(() => {
+    axios.get('/api/interview/ice-servers')
+      .then(res => {
+        if (res.data?.success && res.data?.data?.iceServers) {
+          console.log('✅ ICE servers loaded from backend:', res.data.data.iceServers.length);
+          setIceServers(res.data.data.iceServers);
+        }
+      })
+      .catch(err => console.warn('⚠️ Using default ICE servers:', err.message));
+  }, []);
 
   const [aiQuestions] = useState([
     { id: 1, text: 'تحدث عن أكبر تحدي تقني واجهته وكيف تغلبت عليه؟', category: 'تقني' },
@@ -215,12 +236,11 @@ const VideoInterview = () => {
   }, []);
 
   const createPeerConnection = useCallback((targetSocketId) => {
-    // أغلق الاتصال القديم إن وجد
     if (peersRef.current.has(targetSocketId)) {
       peersRef.current.get(targetSocketId).close();
     }
 
-    const pc = new RTCPeerConnection(ICE_SERVERS);
+    const pc = new RTCPeerConnection({ iceServers });
 
     pc.onicecandidate = ({ candidate }) => {
       if (candidate && socket) {
@@ -281,7 +301,7 @@ const VideoInterview = () => {
 
     peersRef.current.set(targetSocketId, pc);
     return pc;
-  }, [socket]);
+  }, [socket, iceServers]);
 
   const createAndSendOffer = useCallback(async (targetSocketId) => {
     console.log('Creating offer for:', targetSocketId);

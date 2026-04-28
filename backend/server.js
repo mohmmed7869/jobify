@@ -127,6 +127,7 @@ if (cluster.isMaster && process.env.NODE_ENV === 'production' && false) {
   app.use('/api/admin', require('./routes/admin'));
   app.use('/api/support', require('./routes/support'));
   app.use('/api/notifications', require('./routes/notifications'));
+  app.use('/api/interview', require('./routes/interview'));
 
   // Health Check
   app.get('/api/health', (req, res) => {
