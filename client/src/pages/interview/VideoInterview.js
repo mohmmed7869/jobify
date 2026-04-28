@@ -4,7 +4,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   FaVideo, FaVideoSlash, FaMicrophone, FaMicrophoneSlash,
   FaDesktop, FaPhoneSlash, FaComments, FaUsers, FaStickyNote,
-  FaPaperPlane, FaRecordVinyl, FaShieldAlt, FaShareAlt, FaLink
+  FaPaperPlane, FaRecordVinyl, FaShieldAlt
 } from 'react-icons/fa';
 import { FiX, FiZap, FiClock } from 'react-icons/fi';
 import { useSocket } from '../../contexts/SocketContext';
@@ -121,18 +121,6 @@ const VideoInterview = () => {
   const { socket } = useSocket();
   const { user } = useAuth();
 
-  // ===== إذا لم يكن هناك roomId، أنشئ غرفة جديدة بـ ID فريد =====
-  useEffect(() => {
-    if (!roomId) {
-      // توليد ID فريد لكل مقابلة
-      const newRoomId = typeof crypto.randomUUID === 'function'
-        ? crypto.randomUUID()
-        : 'room-' + Math.random().toString(36).slice(2, 11) + '-' + Date.now().toString(36);
-      // إعادة التوجيه للرابط الفريد مع الاحتفاظ بباقي الـ query params
-      navigate(`/smart-interview/${newRoomId}${location.search}`, { replace: true });
-    }
-  }, [roomId, navigate, location.search]);
-
   // حالة المكون
   const [localStream, setLocalStream] = useState(null);
   const [remoteStreams, setRemoteStreams] = useState(new Map()); // socketId -> MediaStream
@@ -172,7 +160,6 @@ const VideoInterview = () => {
   useEffect(() => {
     if (user?.role === 'employer' || user?.role === 'company') setIsHost(true);
   }, [user]);
-
 
   // ===== مؤقت المكالمة =====
   useEffect(() => {
@@ -575,15 +562,14 @@ const VideoInterview = () => {
           <span className="text-xs text-slate-400 font-bold truncate max-w-[180px]">{jobTitle}</span>
 
           <div className="flex items-center gap-2">
-            {/* زر مشاركة الرابط - يظهر للجميع */}
-            <button
-              onClick={handleCopyLink}
-              className="flex items-center gap-1.5 text-[10px] font-black uppercase bg-primary-600/20 hover:bg-primary-600 text-primary-300 hover:text-white px-3 py-1.5 rounded-xl border border-primary-500/30 transition-all"
-              title="نسخ رابط المقابلة ومشاركته"
-            >
-              <FaLink size={10} />
-              <span className="hidden sm:inline">مشاركة الرابط</span>
-            </button>
+            {isHost && (
+              <button
+                onClick={handleCopyLink}
+                className="text-[10px] font-black uppercase bg-primary-600/20 hover:bg-primary-600 text-primary-300 hover:text-white px-3 py-1.5 rounded-xl border border-primary-500/30 transition-all"
+              >
+                نسخ الرابط
+              </button>
+            )}
             <button
               onClick={() => setShowSidebar(s => !s)}
               className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${showSidebar ? 'bg-primary-600 text-white' : 'bg-white/10 hover:bg-white/20'}`}
@@ -603,25 +589,15 @@ const VideoInterview = () => {
                   <FaUsers size={32} className="text-white/20" />
                 </div>
                 <h3 className="text-lg font-black text-white/40 mb-1">في انتظار الطرف الآخر</h3>
-                <p className="text-white/20 text-xs mb-4">شارك الرابط أدناه مع المشارك الآخر</p>
-
-                {/* صندوق عرض الرابط - يظهر للجميع */}
-                <div className="w-full max-w-xs mb-4">
-                  <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2">
-                    <FaLink size={11} className="text-primary-400 shrink-0" />
-                    <span className="text-[10px] text-slate-400 font-mono truncate flex-1 text-left" dir="ltr">
-                      {window.location.origin}/smart-interview/{roomId}
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleCopyLink}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-primary-600 hover:bg-primary-500 text-white border border-primary-500 rounded-xl text-xs font-black transition-all shadow-lg shadow-primary-500/20 hover:shadow-primary-500/40 hover:scale-105 active:scale-95"
-                >
-                  <FaShareAlt size={12} />
-                  نسخ الرابط ومشاركته
-                </button>
+                <p className="text-white/20 text-xs mb-4">شارك رابط المقابلة</p>
+                {isHost && (
+                  <button
+                    onClick={handleCopyLink}
+                    className="px-5 py-2 bg-primary-600/30 hover:bg-primary-600 text-primary-300 hover:text-white border border-primary-500/30 rounded-xl text-xs font-black transition-all"
+                  >
+                    نسخ رابط الدعوة
+                  </button>
+                )}
               </div>
               {/* الفيديو المحلي */}
               <div className="h-full min-h-[200px]">
