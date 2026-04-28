@@ -20,21 +20,9 @@ const ICE_SERVERS = {
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
-    {
-      urls: 'turn:openrelay.metered.ca:80',
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
-    },
-    {
-      urls: 'turn:openrelay.metered.ca:443',
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
-    },
-    {
-      urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
-    }
+    { urls: 'stun:stun3.l.google.com:19302' },
+    { urls: 'stun:stun4.l.google.com:19302' },
+    { urls: 'stun:stun.cloudflare.com:3478' }
   ]
 };
 
@@ -42,14 +30,27 @@ const ICE_SERVERS = {
 // مكون الفيديو البعيد - يجب أن يكون خارج المكون الرئيسي
 // تعريفه داخل الرئيسي يُسبب إعادة رسم مستمرة وقطع الاتصال
 // =====================================================
-const RemoteVideo = memo(({ stream, name, isOnline }) => {
+// RemoteVideo - بدون memo لضمان إعادة الرسم عند تغيير الـ stream
+// =====================================================
+const RemoteVideo = ({ stream, name, isOnline }) => {
   const videoRef = useRef(null);
 
   useEffect(() => {
-    if (videoRef.current && stream) {
-      videoRef.current.srcObject = stream;
-      videoRef.current.play().catch(e => console.warn('Remote play blocked:', e));
+    const video = videoRef.current;
+    if (!video || !stream) return;
+    // دائماً أعد تعيين srcObject لضمان التشغيل
+    if (video.srcObject !== stream) {
+      video.srcObject = stream;
     }
+    const playVideo = () => {
+      video.play().catch(e => console.warn('Remote play blocked:', e));
+    };
+    if (video.readyState >= 2) {
+      playVideo();
+    } else {
+      video.addEventListener('loadeddata', playVideo, { once: true });
+    }
+    return () => video.removeEventListener('loadeddata', playVideo);
   }, [stream]);
 
   return (
@@ -72,7 +73,7 @@ const RemoteVideo = memo(({ stream, name, isOnline }) => {
       </div>
     </div>
   );
-});
+};
 
 // =====================================================
 // مكون الفيديو المحلي - خارج الرئيسي أيضاً
@@ -147,8 +148,9 @@ const VideoInterview = () => {
 
   // Refs - هامة لتجنب stale closures
   const localStreamRef = useRef(null);
-  const peersRef = useRef(new Map());         // socketId -> RTCPeerConnection
-  const pendingCandidates = useRef(new Map()); // socketId -> RTCIceCandidate[]
+  const peersRef = useRef(new Map());           // socketId -> RTCPeerConnection
+  const pendingCandidates = useRef(new Map());  // socketId -> RTCIceCandidate[]
+  const remoteStreamsRef = useRef(new Map());   // socketId -> MediaStream (ref لتجنب stale closures)
   const chatEndRef = useRef(null);
   const messageInputRef = useRef(null);
 
@@ -241,11 +243,29 @@ const VideoInterview = () => {
     };
 
     pc.ontrack = (event) => {
-      console.log('📹 Received remote track from:', targetSocketId);
-      const remoteStream = event.streams[0];
-      if (remoteStream) {
-        setRemoteStreams(prev => new Map(prev).set(targetSocketId, remoteStream));
+      console.log(`📹 Track received [${event.track.kind}] from:`, targetSocketId);
+
+      // الطريقة الأضمن: استخدام event.track مباشرة لبناء الـ stream
+      // event.streams[0] قد يكون undefined في بعض المتصفحات والإعدادات
+      let stream = remoteStreamsRef.current.get(targetSocketId);
+      if (!stream) {
+        stream = new MediaStream();
+        remoteStreamsRef.current.set(targetSocketId, stream);
       }
+
+      // أضف الـ track فقط إذا لم يكن موجوداً مسبقاً
+      const existingTrack = stream.getTracks().find(t => t.kind === event.track.kind);
+      if (existingTrack) {
+        stream.removeTrack(existingTrack);
+      }
+      stream.addTrack(event.track);
+
+      console.log(`✅ Stream now has ${stream.getTracks().length} track(s)`);
+
+      // أنشئ نسخة جديدة من الـ stream لإجبار React على إعادة الرسم
+      const freshStream = new MediaStream(stream.getTracks());
+      remoteStreamsRef.current.set(targetSocketId, freshStream);
+      setRemoteStreams(prev => new Map(prev).set(targetSocketId, freshStream));
     };
 
     // أضف tracks المحلية
