@@ -1,190 +1,184 @@
 const express = require('express');
 const { protect } = require('../middleware/auth');
-const OpenAI = require('openai');
 const natural = require('natural');
 const axios = require('axios');
 const KNOWLEDGE_BASE = require('../utils/knowledgeBase');
-const AIService = require('../ai/ai-service');
 const Job = require('../models/Job');
-const SystemSettings = require('../models/SystemSettings');
 
 const router = express.Router();
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
-// تهيئة خدمة الذكاء الاصطناعي
-const aiService = AIService;
+// ── Gemini Setup ──────────────────────────────────────────
+let geminiModel = null;
+try {
+  const { GoogleGenerativeAI } = require('@google/generative-ai');
+  const key = process.env.GEMINI_API_KEY;
+  if (key) {
+    const genAI = new GoogleGenerativeAI(key);
+    geminiModel = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    console.log('✅ Gemini AI ready in Assistant');
+  }
+} catch (e) {
+  console.warn('Gemini not available:', e.message);
+}
 
-// إعداد المحللات اللغوية
+// ── NLP Setup (TF-IDF للبحث في قاعدة المعرفة) ───────────
 const tokenizer = new natural.WordTokenizer();
 const tfidf = new natural.TfIdf();
+const faqKeys = Object.keys(KNOWLEDGE_BASE.faq || {});
+faqKeys.forEach(q => tfidf.addDocument(q));
 
-// إضافة الأسئلة الشائعة إلى TF-IDF للبحث المتقدم
-Object.entries(KNOWLEDGE_BASE.faq).forEach(([question, data]) => {
-  tfidf.addDocument(question);
-});
+// ── السياق النظامي لـ Gemini ──────────────────────────────
+const SYSTEM_PROMPT = `أنت مساعد ذكاء اصطناعي احترافي لمنصة Jobify للتوظيف، طوّرك فريق Smart Solution بقيادة المهندس محمد علي.
 
-// @desc    مساعد الذكاء الاصطناعي (Chatbot)
-// @route   POST /api/assistant/chat
-// @access  Private
+مهمتك مساعدة المستخدمين في:
+🔍 البحث عن وظائف مناسبة
+📄 تحسين وكتابة السيرة الذاتية
+🎤 التحضير لمقابلات العمل
+📈 تطوير المسار المهني
+💼 نصائح سوق العمل
+
+قواعد الرد:
+- تحدث دائماً بالعربية بأسلوب ودي ومحفز
+- اجعل ردودك مختصرة ومفيدة (3-5 جمل كحد أقصى)
+- استخدم الرموز التعبيرية بشكل مناسب
+- إذا سأل المستخدم عن وظيفة محددة، اقترح البحث في صفحة الوظائف
+- لا تُعطِ معلومات خاطئة عن رواتب أو شركات محددة`;
+
+// ── @route POST /api/assistant/chat ──────────────────────
 router.post('/chat', protect, async (req, res) => {
   try {
     const { message, context = {} } = req.body;
 
-    if (!message) {
-      return res.status(400).json({
-        success: false,
-        message: 'الرسالة مطلوبة'
-      });
+    if (!message?.trim()) {
+      return res.status(400).json({ success: false, message: 'الرسالة مطلوبة' });
     }
 
-    // جلب إعدادات النظام لمعرفة المزود المفضل
-    const settings = await SystemSettings.findOne();
-    const aiProvider = settings?.aiProvider || 'local';
-    
     let finalResponse = null;
     let usedAI = false;
 
-    // 1. إذا كان المزوّد هو Python Service
-    if (aiProvider === 'python-service') {
+    // ══════════════════════════════════════════════════════
+    // 1️⃣  Gemini (الأولوية القصوى)
+    // ══════════════════════════════════════════════════════
+    if (geminiModel) {
       try {
-        const pythonUrl = process.env.PYTHON_AI_SERVICE_URL || 'http://localhost:8000/api/v1/ai';
-        const pythonResponse = await axios.post(`${pythonUrl}/chat`, {
-          message,
-          context
-        });
-        
-        if (pythonResponse.data && pythonResponse.data.response) {
-          finalResponse = pythonResponse.data.response;
-          usedAI = true;
-        }
-      } catch (error) {
-        console.error('Python AI Service Error:', error.message);
-        // Fallback to local if python fails
-      }
-    }
+        // ابحث في الوظائف أولاً إذا كان السؤال عن وظيفة
+        let jobContext = '';
+        const jobKeywords = ['وظيفة', 'عمل', 'شاغر', 'فرصة', 'توظيف', 'شغل', 'أبحث'];
+        if (jobKeywords.some(kw => message.includes(kw))) {
+          const words = tokenizer.tokenize(message) || [];
+          const searchTerms = words.filter(w => !jobKeywords.includes(w) && w.length > 2);
+          if (searchTerms.length > 0) {
+            const jobs = await Job.find({
+              $or: [
+                { title: { $regex: searchTerms.slice(0, 3).join('|'), $options: 'i' } },
+                { category: { $regex: searchTerms.slice(0, 3).join('|'), $options: 'i' } }
+              ],
+              status: 'نشط'
+            }).limit(3).select('title location.city category');
 
-    // 2. إذا كان المزوّد هو OpenAI (أو فشل Python)
-    if (!finalResponse && aiProvider === 'openai') {
-      const effectiveApiKey = settings?.openaiApiKey || process.env.OPENAI_API_KEY;
-      const isPlaceholder = !effectiveApiKey || effectiveApiKey.includes('placeholder');
-      
-      if (!isPlaceholder) {
-        try {
-          const dynamicOpenai = new OpenAI({ apiKey: effectiveApiKey });
-          const completion = await dynamicOpenai.chat.completions.create({
-            model: settings?.openaiModel || 'gpt-3.5-turbo',
-            messages: [
-              {
-                role: 'system',
-                content: `أنت مساعد ذكي احترافي لJobify. المطور: المهندس محمد علي. ساعد المستخدم في رحلته المهنية (وظائف، سير ذاتية، مقابلات). تحدث بالعربية بأسلوب ودود ومحفز.`
-              },
-              { role: 'user', content: message }
-            ],
-            max_tokens: settings?.maxTokens || 800,
-            temperature: settings?.aiTemperature || 0.7
-          });
-          finalResponse = completion.choices[0].message.content;
-          usedAI = true;
-        } catch (error) {
-          console.error('OpenAI Error:', error.message);
-        }
-      }
-    }
-
-    // 3. المنطق المحلي (Local Logic / NLP) - يستخدم كـ Fallback أو إذا تم اختياره
-    if (!finalResponse) {
-      // استخدام خدمة الذكاء الاصطناعي المتقدمة (AIService) أولاً
-      const aiServiceResult = await aiService.chatBot(message, context);
-      
-      if (aiServiceResult.success && aiServiceResult.response && 
-          !aiServiceResult.response.includes('عذراً، حدث خطأ')) {
-        finalResponse = aiServiceResult.response;
-      } else {
-        // البحث في قاعدة المعرفة المحلية باستخدام تقنيات NLP
-        let bestMatchScore = 0;
-        let bestMatchKey = null;
-
-        tfidf.tfidfs(message, (i, score) => {
-          if (score > bestMatchScore) {
-            bestMatchScore = score;
-            bestMatchKey = Object.keys(KNOWLEDGE_BASE.faq)[i];
-          }
-        });
-
-        if (bestMatchScore > 0.5 && bestMatchKey) {
-          finalResponse = KNOWLEDGE_BASE.faq[bestMatchKey].answer;
-        }
-
-        // التحقق من نية البحث عن وظائف
-        if (!finalResponse) {
-          const jobKeywords = ['وظيفة', 'عمل', 'أبحث عن', 'فرص', 'شاغر', 'شغل', 'توظيف'];
-          const isSearchingJobs = jobKeywords.some(keyword => message.includes(keyword));
-          
-          if (isSearchingJobs) {
-            const words = tokenizer.tokenize(message);
-            const searchTerms = words.filter(w => !jobKeywords.includes(w) && w.length > 2);
-            
-            if (searchTerms.length > 0) {
-              const jobs = await Job.find({
-                $or: [
-                  { title: { $regex: searchTerms.join('|'), $options: 'i' } },
-                  { category: { $regex: searchTerms.join('|'), $options: 'i' } }
-                ],
-                status: 'نشط'
-              }).limit(3);
-
-              if (jobs.length > 0) {
-                finalResponse = `لقد وجدت بعض الوظائف الشاغرة التي قد تناسبك:\n\n` + 
-                  jobs.map(j => `🔹 **${j.title}**\n📍 ${j.location.city}`).join('\n\n') +
-                  `\n\nيمكنك استكشاف المزيد في صفحة "البحث عن وظائف".`;
-              }
+            if (jobs.length > 0) {
+              jobContext = `\n\nوظائف متاحة الآن في المنصة:\n` +
+                jobs.map(j => `- ${j.title} في ${j.location?.city || 'غير محدد'}`).join('\n');
             }
           }
         }
+
+        // بناء سياق المستخدم
+        const userContext = context.userRole
+          ? `نوع المستخدم: ${context.userRole === 'jobseeker' ? 'باحث عن عمل' : context.userRole === 'employer' ? 'صاحب عمل' : 'مستخدم'}`
+          : '';
+
+        const fullPrompt = `${SYSTEM_PROMPT}\n${userContext}${jobContext}\n\nالمستخدم: ${message}\nالمساعد:`;
+        const result = await geminiModel.generateContent(fullPrompt);
+        finalResponse = result.response.text().trim();
+        usedAI = true;
+      } catch (e) {
+        console.error('Gemini error in assistant:', e.message);
       }
     }
 
-    // 4. Fallback نهائي لـ OpenAI إذا لم يتوفر رد محلي وكان المزود 'local'
-    if (!finalResponse && aiProvider === 'local') {
-      const effectiveApiKey = settings?.openaiApiKey || process.env.OPENAI_API_KEY;
-      if (effectiveApiKey && !effectiveApiKey.includes('placeholder')) {
-        try {
-          const dynamicOpenai = new OpenAI({ apiKey: effectiveApiKey });
-          const completion = await dynamicOpenai.chat.completions.create({
-            model: settings?.openaiModel || 'gpt-3.5-turbo',
-            messages: [{ role: 'user', content: message }],
-            max_tokens: settings?.maxTokens || 500
-          });
-          finalResponse = completion.choices[0].message.content;
-          usedAI = true;
-        } catch (e) {}
-      }
-    }
-
-    // الرد النهائي الشامل
+    // ══════════════════════════════════════════════════════
+    // 2️⃣  Python AI Service (fallback)
+    // ══════════════════════════════════════════════════════
     if (!finalResponse) {
-      finalResponse = "مرحباً بك! أنا مساعدك الذكي. يمكنني مساعدتك في البحث عن وظائف، تحسين سيرتك الذاتية، والتحضير للمقابلات. كيف يمكنني مساعدتك اليوم؟";
+      try {
+        const pythonUrl = process.env.PYTHON_AI_SERVICE_URL;
+        if (pythonUrl) {
+          const res2 = await axios.post(`${pythonUrl}/api/v1/ai/chat`, { message, context }, { timeout: 4000 });
+          if (res2.data?.response) {
+            finalResponse = res2.data.response;
+            usedAI = true;
+          }
+        }
+      } catch (e) { /* continue to fallback */ }
+    }
+
+    // ══════════════════════════════════════════════════════
+    // 3️⃣  قاعدة المعرفة المحلية (NLP TF-IDF)
+    // ══════════════════════════════════════════════════════
+    if (!finalResponse) {
+      let bestScore = 0;
+      let bestKey = null;
+      tfidf.tfidfs(message, (i, score) => {
+        if (score > bestScore) { bestScore = score; bestKey = faqKeys[i]; }
+      });
+
+      if (bestScore > 0.4 && bestKey && KNOWLEDGE_BASE.faq[bestKey]) {
+        finalResponse = KNOWLEDGE_BASE.faq[bestKey].answer;
+      }
+    }
+
+    // ══════════════════════════════════════════════════════
+    // 4️⃣  بحث في الوظائف (إذا لم يُرد شيء)
+    // ══════════════════════════════════════════════════════
+    if (!finalResponse) {
+      const jobKeywords = ['وظيفة', 'عمل', 'أبحث', 'فرص', 'شاغر', 'شغل', 'توظيف'];
+      if (jobKeywords.some(kw => message.includes(kw))) {
+        const words = tokenizer.tokenize(message) || [];
+        const terms = words.filter(w => !jobKeywords.includes(w) && w.length > 2);
+        if (terms.length > 0) {
+          const jobs = await Job.find({
+            $or: [
+              { title: { $regex: terms.join('|'), $options: 'i' } },
+              { category: { $regex: terms.join('|'), $options: 'i' } }
+            ],
+            status: 'نشط'
+          }).limit(3);
+
+          if (jobs.length > 0) {
+            finalResponse = `وجدت هذه الوظائف المتاحة لك 👇\n\n` +
+              jobs.map(j => `🔹 **${j.title}** — 📍 ${j.location?.city || ''}`).join('\n\n') +
+              `\n\nاستكشف المزيد في صفحة "البحث عن وظائف" 🔍`;
+          }
+        }
+      }
+    }
+
+    // ══════════════════════════════════════════════════════
+    // 5️⃣  رد ذكي افتراضي حسب نوع الرسالة
+    // ══════════════════════════════════════════════════════
+    if (!finalResponse) {
+      const msg = message.toLowerCase();
+      if (msg.includes('سيرة') || msg.includes('cv') || msg.includes('resume')) {
+        finalResponse = 'لتحسين سيرتك الذاتية، اذهب لصفحة "باني السيرة الذاتية" 📄 واستخدم أداة التحليل الذكي التي ستعطيك اقتراحات مخصصة!';
+      } else if (msg.includes('مقابلة') || msg.includes('interview')) {
+        finalResponse = 'للتحضير للمقابلة 🎤، راجع أسئلة المقابلة الشائعة في مجالك، تدرب على إجاباتك بصوت عالٍ، وتأكد من البحث عن الشركة مسبقاً. هل تريد أسئلة تدريبية لمجال معين؟';
+      } else if (msg.includes('راتب') || msg.includes('salary')) {
+        finalResponse = 'الرواتب تختلف حسب المجال والخبرة والموقع 💰. يمكنك الاطلاع على متوسطات الرواتب في صفحة تحليل سوق العمل!';
+      } else {
+        finalResponse = 'مرحباً! 👋 أنا مساعدك الذكي في Jobify. يمكنني مساعدتك في:\n• البحث عن وظائف\n• تحسين سيرتك الذاتية\n• التحضير للمقابلات\n• نصائح مهنية\n\nكيف يمكنني مساعدتك اليوم؟ 😊';
+      }
     }
 
     res.status(200).json({
       success: true,
-      data: {
-        response: finalResponse,
-        usedAI,
-        timestamp: new Date()
-      }
+      data: { response: finalResponse, usedAI, timestamp: new Date() }
     });
 
   } catch (error) {
     console.error('Assistant Error:', error);
-    res.status(500).json({
-      success: false,
-      message: `خطأ في الخادم (${error.message})`
-    });
+    res.status(500).json({ success: false, message: `خطأ في الخادم (${error.message})` });
   }
 });
 
 module.exports = router;
-
