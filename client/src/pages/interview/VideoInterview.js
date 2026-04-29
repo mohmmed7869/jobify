@@ -254,12 +254,13 @@ const VideoInterview = () => {
         return null;
       }
 
-      // طلب الكاميرا بإعدادات مخصصة للإنترنت الضعيف (Network Adaptation)
+      // طلب الكاميرا بإعدادات مرنة لتفادي أخطاء الأندرويد (OverconstrainedError)
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          width: { ideal: 640, max: 1280 },
-          height: { ideal: 360, max: 720 },
-          frameRate: { ideal: 15, max: 24 } // خفض الفريمات لتوفير البيانات بنسبة 60%
+          facingMode: "user", // تشغيل الكاميرا الأمامية للهواتف
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          frameRate: { ideal: 15 } // استخدام ideal فقط لأن أجهزة الأندرويد ترفض max أحياناً
         },
         audio: {
           echoCancellation: true,
