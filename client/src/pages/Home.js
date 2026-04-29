@@ -1,317 +1,322 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  FiSearch, FiUsers, FiBriefcase, FiTrendingUp, 
-  FiStar, FiArrowLeft, FiMessageCircle, FiFileText, FiCpu 
+import {
+  FiSearch, FiBriefcase, FiFileText, FiMessageCircle,
+  FiArrowLeft, FiCheck, FiStar, FiUsers, FiTrendingUp, FiZap
 } from 'react-icons/fi';
 
+// ─── ثوابت ──────────────────────────────────────────────
+const FEATURES = [
+  {
+    icon: <FiZap size={24} />,
+    title: 'ذكاء اصطناعي يعمل لحسابك',
+    desc: 'يحلل ملفك ويطابقه مع الوظائف المناسبة تلقائياً، وينبهك فور وجود فرصة جيدة.',
+    color: 'bg-amber-50 text-amber-600 border-amber-200',
+  },
+  {
+    icon: <FiFileText size={24} />,
+    title: 'سيرة ذاتية احترافية في دقائق',
+    desc: 'قوالب مصممة للظهور في قمة نتائج أنظمة الفلترة الآلية (ATS).',
+    color: 'bg-blue-50 text-blue-600 border-blue-200',
+  },
+  {
+    icon: <FiMessageCircle size={24} />,
+    title: 'مجتمع مهني نشط',
+    desc: 'تواصل مع محترفين في مجالك، اطرح أسئلتك، وشارك خبراتك.',
+    color: 'bg-green-50 text-green-600 border-green-200',
+  },
+  {
+    icon: <FiBriefcase size={24} />,
+    title: 'مقابلات فيديو مدمجة',
+    desc: 'أجرِ مقابلتك مباشرة من المنصة، بدون برامج إضافية.',
+    color: 'bg-violet-50 text-violet-600 border-violet-200',
+  },
+];
+
+const STATS = [
+  { value: '+5,000', label: 'باحث عن عمل' },
+  { value: '+800',   label: 'شركة موظِّفة'  },
+  { value: '+12,000', label: 'وظيفة نُشرت'  },
+  { value: '92%',    label: 'معدل رضا المستخدمين' },
+];
+
+const STEPS_JOBSEEKER = [
+  { num: 1, title: 'أنشئ ملفك',          desc: 'سجّل وأضف مهاراتك وخبراتك.' },
+  { num: 2, title: 'اكتشف الوظائف',      desc: 'الذكاء الاصطناعي يقترح أفضل الفرص لك.' },
+  { num: 3, title: 'قدّم وانتظر ردّنا',  desc: 'تابع حالة طلباتك من مكان واحد.'  },
+];
+
+const STEPS_EMPLOYER = [
+  { num: 1, title: 'انشر وظيفتك',       desc: 'في أقل من 5 دقائق.' },
+  { num: 2, title: 'راجع المتقدمين',    desc: 'مع تقرير AI لكل مرشح.'  },
+  { num: 3, title: 'أجرِ المقابلة',     desc: 'فيديو مباشر من المنصة.' },
+];
+
+const TEAM = [
+  { name: 'محمد علي',  role: 'قائد الفريق', isLead: true },
+  { name: 'مكين الشلفي', role: 'مهندس برمجيات' },
+  { name: 'هيثم نجاد',  role: 'مهندس برمجيات' },
+  { name: 'محمد حنش',  role: 'مهندس برمجيات' },
+  { name: 'محمد علي',  role: 'مهندس برمجيات' },
+];
+
+// ─── المكون الرئيسي ──────────────────────────────────────
 const Home = () => {
   const { user } = useAuth();
-  const { t } = useTranslation();
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.2
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        type: "spring",
-        stiffness: 100
-      }
-    }
-  };
-
-  const features = [
-    {
-      icon: <FiCpu className="w-8 h-8" />,
-      title: 'محرك مطابقة بالذكاء الاصطناعي',
-      description: 'نظام متطور يقوم بتحليل مهاراتك ومطابقتها مع أفضل الوظائف المتاحة بدقة متناهية.'
-    },
-    {
-      icon: <FiFileText className="w-8 h-8" />,
-      title: 'باني السيرة الذاتية الذكي',
-      description: 'أنشئ سيرة ذاتية احترافية في دقائق باستخدام قوالب عصرية ومعاينة حية.'
-    },
-    {
-      icon: <FiMessageCircle className="w-8 h-8" />,
-      title: 'المركز الاجتماعي',
-      description: 'تواصل مع الخبراء والزملاء، شارك خبراتك، واحصل على نصائح مهنية قيمة.'
-    },
-    {
-      icon: <FiTrendingUp className="w-8 h-8" />,
-      title: 'تحليلات المسار المهني',
-      description: 'تتبع تطور ملفك الشخصي واحصل على رؤى حول كيفية تحسين فرص توظيفك.'
-    }
-  ];
+  const dashboardLink = user
+    ? user.role === 'jobseeker' ? '/dashboard'
+    : user.role === 'employer'  ? '/employer/dashboard'
+    : '/admin/dashboard'
+    : null;
 
   return (
-    <div className="min-h-screen luxury-aura relative overflow-x-hidden">
-      {/* Background Ornaments */}
-      <div className="blur-circle w-[500px] h-[500px] bg-primary-500/10 -top-48 -right-48"></div>
-      <div className="blur-circle w-[400px] h-[400px] bg-accent/10 bottom-0 -left-24" style={{ animationDelay: '2s' }}></div>
+    <div className="min-h-screen bg-white" dir="rtl">
 
-      {/* Hero Section */}
-      <section className="relative pt-12 pb-12 md:pt-32 md:pb-24 overflow-hidden px-4 md:px-0">
-        <motion.div 
-          className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center"
-          initial="hidden"
-          animate="visible"
-          variants={containerVariants}
-        >
-          <motion.div variants={itemVariants}>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 md:px-6 md:py-2.5 mb-6 md:mb-10 premium-glass-panel border border-primary-200/30 rounded-full shadow-glow-sm floating-element">
-              <span className="flex h-2 w-2 md:h-2.5 md:w-2.5 rounded-full bg-primary-500 animate-pulse shadow-glow"></span>
-              <span className="text-primary-600 text-[8px] md:text-[10px] font-black tracking-[0.1em] md:tracking-[0.2em] uppercase">نظام التوظيف الذكي v3.5 - Digital Luxury</span>
-            </div>
-            <motion.h1 
-              className="text-4xl sm:text-6xl md:text-8xl lg:text-9xl font-black mb-4 md:mb-8 leading-tight tracking-tighter themed-text"
-              variants={itemVariants}
-            >
-              {t('home.hero_title')} <br className="hidden sm:block"/>
-              <span className="premium-gradient-text drop-shadow-md">{t('home.hero_title_accent')}</span>
-            </motion.h1>
-            <motion.p 
-              className="text-lg md:text-3xl mb-8 md:mb-14 themed-text-sec max-w-4xl mx-auto font-bold leading-relaxed opacity-90"
-              variants={itemVariants}
-            >
-              {t('home.hero_subtitle')}
-            </motion.p>
-            <motion.div 
-              className="flex flex-col sm:flex-row gap-4 sm:gap-10 justify-center items-center px-4 md:px-0"
-              variants={itemVariants}
-            >
-              {!user ? (
-                <>
-                  <Link
-                    to="/register"
-                    className="btn-formal-primary text-lg md:text-2xl px-10 md:px-20 py-4 md:py-6 w-full sm:w-auto magnetic-lift shadow-glow-lg luxury-border"
-                  >
-                    {t('home.start_journey')}
-                  </Link>
-                  <Link
-                    to="/jobs"
-                    className="btn-formal-secondary text-lg md:text-2xl px-10 md:px-20 py-4 md:py-6 w-full sm:w-auto magnetic-lift border-primary-200/50 glass-premium"
-                  >
-                    {t('home.browse_jobs')}
-                  </Link>
-                </>
-              ) : (
-                <Link
-                  to={user.role === 'jobseeker' ? '/dashboard' : user.role === 'employer' ? '/employer/dashboard' : '/admin/dashboard'}
-                  className="btn-formal-primary text-lg md:text-2xl px-10 md:px-20 py-4 md:py-6 w-full sm:w-auto magnetic-lift shadow-glow-lg luxury-border"
-                >
-                  {t('navbar.dashboard')}
-                </Link>
-              )}
-            </motion.div>
-            
-            <motion.div 
-              className="mt-16 md:mt-24 flex flex-col items-center"
-              variants={itemVariants}
-            >
-              <p className="text-themed-text-ter text-[9px] font-black uppercase tracking-[0.4em] md:tracking-[0.5em] mb-4 md:mb-6 opacity-60">Engineered by Smart Solution Technology</p>
-              <motion.div 
-                className="premium-card px-8 py-5 md:px-12 md:py-8 flex items-center gap-5 md:gap-8 group cursor-pointer border-primary-200/20 max-w-[95vw] md:max-w-none"
-                whileHover={{ scale: 1.05, y: -10 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <div className="w-12 h-12 md:w-16 md:h-16 rounded-2xl md:rounded-[1.5rem] bg-gradient-to-br from-primary-600 to-accent flex items-center justify-center text-white shadow-glow-lg group-hover:rotate-12 transition-transform duration-500 shrink-0">
-                  <FiCpu className="w-6 h-6 md:w-9 md:h-9" />
-                </div>
-                <div className="text-right min-w-0">
-                  <div className="premium-gradient-text text-xl md:text-3xl tracking-tight truncate">Smart Solution Team</div>
-                  <div className="text-primary-600 text-[10px] md:text-sm font-black tracking-wide opacity-80 truncate">mohom77393@gmail.com | صنعاء، اليمن</div>
-                </div>
-              </motion.div>
-            </motion.div>
+      {/* ══ Hero ═══════════════════════════════════════════ */}
+      <section className="relative bg-gradient-to-b from-slate-950 to-slate-900 text-white overflow-hidden">
+        {/* خلفية زخرفية */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-96 h-96 bg-primary-600/20 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-72 h-72 bg-primary-400/10 rounded-full blur-3xl" />
+        </div>
+
+        <div className="relative max-w-5xl mx-auto px-4 pt-20 pb-24 text-center">
+          {/* شارة */}
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-2 bg-white/10 border border-white/20 px-4 py-1.5 rounded-full text-xs font-semibold text-white/80 mb-8"
+          >
+            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+            منصة التوظيف الذكية — مجانية تماماً
           </motion.div>
-        </motion.div>
+
+          {/* العنوان */}
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-4xl sm:text-5xl md:text-6xl font-bold leading-tight mb-6"
+          >
+            ابدأ مسيرتك المهنية
+            <br />
+            <span className="text-primary-400">بخطوة واحدة</span>
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-slate-300 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed"
+          >
+            منصة توظيف عربية مدعومة بالذكاء الاصطناعي. نساعدك تجد الوظيفة المناسبة أو توجد الموظف المثالي.
+          </motion.p>
+
+          {/* أزرار الإجراء */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="flex flex-col sm:flex-row gap-4 justify-center"
+          >
+            {user ? (
+              <Link
+                to={dashboardLink}
+                className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-8 py-4 rounded-2xl text-base transition-colors shadow-lg"
+              >
+                الذهاب للوحة التحكم →
+              </Link>
+            ) : (
+              <>
+                <Link
+                  to="/register"
+                  className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-8 py-4 rounded-2xl text-base transition-colors shadow-lg"
+                >
+                  ابدأ مجاناً الآن 🚀
+                </Link>
+                <Link
+                  to="/jobs"
+                  className="bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold px-8 py-4 rounded-2xl text-base transition-colors"
+                >
+                  تصفح الوظائف
+                </Link>
+              </>
+            )}
+          </motion.div>
+
+          {/* أرقام صغيرة */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="mt-14 grid grid-cols-2 sm:grid-cols-4 gap-6 border-t border-white/10 pt-10"
+          >
+            {STATS.map((s, i) => (
+              <div key={i} className="text-center">
+                <p className="text-2xl font-bold text-white">{s.value}</p>
+                <p className="text-xs text-slate-400 mt-1">{s.label}</p>
+              </div>
+            ))}
+          </motion.div>
+        </div>
       </section>
 
-      {/* Features Grid */}
-      <section className="py-20 md:py-40 relative overflow-hidden">
-        <div className="blur-circle w-[600px] h-[600px] bg-primary-500/5 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
-        <div className="premium-container relative z-10">
-          <motion.div 
-            className="text-center mb-20 md:mb-32 px-4"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-          >
-            <h2 className="text-4xl sm:text-5xl md:text-7xl font-black text-themed-text mb-8 tracking-tighter">
-              مميزات صممت <span className="premium-gradient-text">بذكاء فائق</span>
-            </h2>
-            <div className="w-24 md:w-32 h-2 bg-gradient-to-r from-primary-600 to-accent mx-auto rounded-full shadow-glow-primary"></div>
-          </motion.div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12 px-4">
-            {features.map((feature, index) => (
-              <motion.div 
-                key={index} 
-                className="premium-card p-8 md:p-10 group cursor-pointer shimmer-sweep luxury-border"
-                initial={{ opacity: 0, y: 20 }}
+      {/* ══ كيف تعمل المنصة ════════════════════════════════ */}
+      <section className="py-20 bg-slate-50">
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-slate-900 mb-3">كيف تعمل المنصة؟</h2>
+            <p className="text-slate-500">3 خطوات فقط تفصلك عن هدفك</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* باحث عن عمل */}
+            <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-9 h-9 bg-primary-600 text-white rounded-xl flex items-center justify-center">
+                  <FiSearch size={16} />
+                </div>
+                <h3 className="font-bold text-lg text-slate-800">للباحث عن عمل</h3>
+              </div>
+              <div className="space-y-4">
+                {STEPS_JOBSEEKER.map(s => (
+                  <div key={s.num} className="flex gap-4">
+                    <div className="w-7 h-7 rounded-full bg-primary-50 text-primary-600 border border-primary-200 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+                      {s.num}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-800 text-sm">{s.title}</p>
+                      <p className="text-slate-500 text-xs mt-0.5">{s.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <Link
+                to="/register"
+                className="mt-6 w-full block text-center bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 rounded-xl transition-colors text-sm"
+              >
+                ابدأ رحلتك الوظيفية →
+              </Link>
+            </div>
+
+            {/* صاحب العمل */}
+            <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-9 h-9 bg-slate-800 text-white rounded-xl flex items-center justify-center">
+                  <FiBriefcase size={16} />
+                </div>
+                <h3 className="font-bold text-lg text-slate-800">لصاحب العمل</h3>
+              </div>
+              <div className="space-y-4">
+                {STEPS_EMPLOYER.map(s => (
+                  <div key={s.num} className="flex gap-4">
+                    <div className="w-7 h-7 rounded-full bg-slate-100 text-slate-600 border border-slate-200 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+                      {s.num}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-800 text-sm">{s.title}</p>
+                      <p className="text-slate-500 text-xs mt-0.5">{s.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <Link
+                to="/register"
+                className="mt-6 w-full block text-center bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 rounded-xl transition-colors text-sm"
+              >
+                ابدأ التوظيف الآن →
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ══ المميزات ════════════════════════════════════════ */}
+      <section className="py-20 bg-white">
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-slate-900 mb-3">لماذا Jobify؟</h2>
+            <p className="text-slate-500">كل ما تحتاجه في مكان واحد</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {FEATURES.map((f, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 15 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: index * 0.1, duration: 0.5 }}
+                transition={{ delay: i * 0.1 }}
+                className="flex gap-4 p-5 rounded-2xl border border-slate-100 hover:border-slate-200 hover:shadow-sm transition-all bg-white"
               >
-                <div className="w-14 h-14 md:w-20 md:h-20 bg-primary-500/10 text-primary-600 rounded-2xl md:rounded-[1.5rem] flex items-center justify-center mb-8 group-hover:bg-primary-600 group-hover:text-white group-hover:rotate-12 group-hover:scale-110 transition-all duration-500 shadow-sm border border-primary-500/20">
-                  {React.cloneElement(feature.icon, { className: "w-8 h-8 md:w-10 md:h-10" })}
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center border shrink-0 ${f.color}`}>
+                  {f.icon}
                 </div>
-                <h3 className="text-2xl md:text-3xl font-black themed-text mb-5 tracking-tight group-hover:text-primary-600 transition-colors">
-                  {feature.title}
-                </h3>
-                <p className="text-themed-text-sec leading-relaxed font-bold text-sm md:text-base opacity-80">
-                  {feature.description}
-                </p>
+                <div>
+                  <h3 className="font-bold text-slate-800 mb-1">{f.title}</h3>
+                  <p className="text-slate-500 text-sm leading-relaxed">{f.desc}</p>
+                </div>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Community Section */}
-      <section className="py-20 md:py-32 bg-themed-bg-sec text-themed-text overflow-hidden relative border-y border-primary-100/10">
-        <div className="absolute top-0 left-0 w-full h-full opacity-10">
-          <div className="absolute top-10 left-10 w-48 md:w-64 h-48 md:h-64 bg-primary-500 rounded-full blur-[80px] md:blur-[120px]"></div>
-          <div className="absolute bottom-10 right-10 w-48 md:w-64 h-48 md:h-64 bg-accent rounded-full blur-[80px] md:blur-[120px]"></div>
+      {/* ══ CTA - سيرة ذاتية ════════════════════════════════ */}
+      <section className="py-16 bg-primary-600">
+        <div className="max-w-3xl mx-auto px-4 text-center text-white">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-4">سيرتك الذاتية هي بطاقة دخولك</h2>
+          <p className="text-primary-100 mb-8 text-base leading-relaxed">
+            أنشئ سيرة ذاتية احترافية تناسب أنظمة الفلترة الآلية وتزيد فرصك للوصول للمقابلة.
+          </p>
+          <Link
+            to="/resume-builder"
+            className="inline-flex items-center gap-2 bg-white text-primary-600 font-bold px-8 py-3.5 rounded-2xl hover:bg-primary-50 transition-colors shadow-lg"
+          >
+            <FiFileText size={18} /> ابنِ سيرتك الآن مجاناً
+          </Link>
         </div>
-        
-        <div className="premium-container relative z-10 px-4">
-          <div className="flex flex-col lg:flex-row items-center gap-12 md:gap-20">
-            <div className="lg:w-1/2 text-center lg:text-right">
-              <h2 className="text-3xl md:text-5xl font-black mb-6 md:mb-8 leading-tight text-themed-text">
-                أكثر من مجرد منصة توظيف.. <br className="hidden md:block"/>
-                <span className="text-primary-600">مجتمع مهني متكامل</span>
-              </h2>
-              <p className="text-lg md:text-xl text-themed-text-sec mb-8 md:mb-10 leading-relaxed max-w-2xl mx-auto lg:mx-0">
-                انضم إلى آلاف المهنيين في المركز الاجتماعي الجديد. شارك مقالاتك، اطلب نصائح، وتفاعل مع خبراء في مجالك لتبني شبكة علاقات قوية تساعدك في مسيرتك.
-              </p>
-              <Link to="/social" className="btn-formal-primary inline-flex items-center gap-3 px-8 py-4 md:px-12 md:py-5 magnetic-lift shadow-glow mx-auto lg:mx-0">
-                اكتشف المجتمع المهني <FiArrowLeft className="text-xl" />
-              </Link>
-            </div>
-            <div className="lg:w-1/2 w-full max-w-lg lg:max-w-none">
-              <div className="relative group">
-                <div className="absolute -inset-1 bg-gradient-to-r from-primary-600 to-accent rounded-[2rem] md:rounded-[2.5rem] blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
-                <div className="relative glass-premium p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-primary-200/20 shimmer-sweep">
-                  <div className="space-y-4 md:space-y-6">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="flex items-center gap-3 md:gap-4 p-3 md:p-4 bg-themed-bg-ter rounded-xl md:rounded-2xl border border-themed-border-light">
-                        <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full bg-themed-bg-sec ${i === 2 ? 'bg-primary-500' : ''}`}></div>
-                        <div className="flex-1 space-y-2">
-                          <div className="h-2 w-16 md:w-24 bg-themed-text-ter rounded opacity-30"></div>
-                          <div className="h-2 w-full bg-themed-bg-sec rounded opacity-50"></div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+      </section>
+
+      {/* ══ فريق العمل ══════════════════════════════════════ */}
+      <section className="py-20 bg-slate-50">
+        <div className="max-w-5xl mx-auto px-4 text-center">
+          <h2 className="text-3xl font-bold text-slate-900 mb-2">فريق التطوير</h2>
+          <p className="text-slate-500 mb-12">Smart Solution Engineering Team</p>
+
+          <div className="flex flex-wrap justify-center gap-5">
+            {TEAM.map((m, i) => (
+              <div
+                key={i}
+                className={`flex flex-col items-center p-5 rounded-2xl border w-36 transition-all hover:-translate-y-1 ${
+                  m.isLead
+                    ? 'bg-primary-600 border-primary-500 text-white shadow-lg'
+                    : 'bg-white border-slate-100 text-slate-700 shadow-sm'
+                }`}
+              >
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg mb-3 ${
+                  m.isLead ? 'bg-white/20 text-white' : 'bg-primary-50 text-primary-600'
+                }`}>
+                  {m.name.charAt(0)}
                 </div>
+                <p className="font-bold text-sm leading-tight text-center">{m.name}</p>
+                <p className={`text-xs mt-1 text-center ${m.isLead ? 'text-primary-100' : 'text-slate-400'}`}>{m.role}</p>
               </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Resume Builder CTA */}
-      <section className="py-20 md:py-32 relative overflow-hidden px-4">
-        <div className="premium-container relative z-10">
-          <div className="glass-premium bg-gradient-to-br from-primary-600/95 to-accent-dark/95 p-8 md:p-16 lg:p-20 text-white flex flex-col lg:flex-row items-center gap-12 md:gap-16 overflow-hidden rounded-[2.5rem] md:rounded-[3rem] border-none shimmer-sweep">
-            <div className="absolute top-0 right-0 w-48 md:w-64 h-48 md:h-64 bg-white/10 rounded-full -mr-24 md:-mr-32 -mt-24 md:-mt-32 blur-2xl md:blur-3xl"></div>
-            <div className="lg:w-3/5 relative z-10 text-center lg:text-right">
-              <h2 className="text-3xl md:text-5xl lg:text-6xl font-black mb-6 md:mb-8 leading-tight">
-                سيرتك الذاتية هي <br/><span className="text-white/80">هويتك المهنية</span>
-              </h2>
-              <p className="text-lg md:text-xl text-white/90 mb-8 md:mb-12 leading-relaxed font-medium max-w-2xl mx-auto lg:mx-0">
-                استخدم باني السيرة الذاتية المدمج لإنشاء ملف احترافي يتوافق مع أنظمة الفرز الآلي (ATS) ويزيد من فرص وصولك للمقابلة الشخصية بنسبة 70%.
-              </p>
-              <Link to="/resume-builder" className="btn-formal bg-white text-primary-600 hover:bg-themed-bg-sec shadow-xl px-8 md:px-12 py-3 md:py-4 text-base md:text-lg magnetic-lift shimmer-sweep mx-auto lg:mx-0">
-                ابدأ بناء سيرتك الآن
-              </Link>
-            </div>
-            <div className="lg:w-2/5 w-full max-w-md lg:max-w-none relative z-10">
-              <div className="glass-premium bg-white/10 border-white/20 p-6 md:p-8 shadow-2xl rotate-2 md:rotate-3 hover:rotate-0 transition-transform duration-500 rounded-2xl md:rounded-3xl">
-                <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
-                  <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-red-400"></div>
-                  <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-yellow-400"></div>
-                  <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-green-400"></div>
-                </div>
-                <div className="space-y-3 md:space-y-4">
-                  <div className="h-3 md:h-4 w-1/2 bg-white/20 rounded"></div>
-                  <div className="h-1.5 md:h-2 w-full bg-white/10 rounded"></div>
-                  <div className="h-1.5 md:h-2 w-full bg-white/10 rounded"></div>
-                  <div className="h-1.5 md:h-2 w-3/4 bg-white/10 rounded"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Development Team */}
-      <section className="py-20 md:py-40 relative overflow-hidden">
-        <div className="blur-circle w-[500px] h-[500px] bg-accent/5 -bottom-24 -right-24"></div>
-        <div className="premium-container px-4 relative z-10">
-          <div className="text-center mb-24 md:mb-32">
-            <h2 className="text-4xl md:text-6xl lg:text-8xl font-black text-themed-text mb-8 tracking-tighter">
-              نخبة <span className="text-primary-600 font-extrabold">فريق Smart Solution</span>
-            </h2>
-            <p className="text-themed-text-ter font-black text-lg md:text-2xl tracking-[0.2em] opacity-60 uppercase">The Architects of Innovation</p>
-          </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 md:gap-12">
-            <TeamMember name="المهندس محمد علي" role="رئيس فريق Smart Solution" isLead />
-            <TeamMember name="المهندس مكين الشلفي" role="مهندس برمجيات" />
-            <TeamMember name="المهندس هيثم نجاد" role="مهندس برمجيات" />
-            <TeamMember name="المهندس محمد حنش" role="مهندس برمجيات" />
-            <TeamMember name="المهندس محمد علي" role="مهندس برمجيات" />
-          </div>
-        </div>
-      </section>
-
-      {/* Footer Branding */}
-      <footer className="py-12 bg-themed-bg border-t border-themed-border-light">
-        <div className="premium-container text-center">
-          <p className="text-themed-text-ter text-[10px] font-black uppercase tracking-[0.5em] mb-4">Developed by Smart Solution Engineering Team</p>
-          <div className="flex items-center justify-center gap-2">
-            <div className="h-px w-8 bg-themed-border-light"></div>
-            <p className="text-themed-text font-black text-lg">بإشراف المهندس محمد علي & Smart Solution Team</p>
-            <div className="h-px w-8 bg-themed-border-light"></div>
-          </div>
-          <p className="text-primary-600 font-black text-xs mt-4">mohom77393@gmail.com</p>
-        </div>
+      {/* ══ Footer ══════════════════════════════════════════ */}
+      <footer className="bg-slate-900 text-slate-400 py-10 text-center">
+        <p className="text-sm font-semibold text-slate-300 mb-1">Jobify — منصة التوظيف الذكية</p>
+        <p className="text-xs">Developed by Smart Solution Team • mohom77393@gmail.com</p>
       </footer>
     </div>
   );
 };
-
-const TeamMember = ({ name, role, isLead }) => (
-  <motion.div 
-    className={`p-10 rounded-[2.5rem] text-center transition-all duration-700 w-full overflow-hidden ${isLead ? 'bg-gradient-to-br from-primary-600 via-primary-700 to-accent-dark text-white shadow-glow-lg scale-110 z-10 luxury-border' : 'premium-card'}`}
-    whileHover={{ y: -20, scale: isLead ? 1.15 : 1.08 }}
-    initial={{ opacity: 0, scale: 0.9 }}
-    whileInView={{ opacity: 1, scale: isLead ? 1.1 : 1 }}
-    viewport={{ once: true }}
-  >
-    <div className={`w-24 h-24 mx-auto rounded-[1.5rem] flex items-center justify-center mb-8 text-4xl font-black shadow-inner rotate-3 group-hover:rotate-0 transition-transform duration-500 ${isLead ? 'bg-white/20 text-white backdrop-blur-md' : 'bg-primary-500/10 text-primary-600'}`}>
-      {name.split(' ').pop().charAt(0)}
-    </div>
-    <h3 className={`font-black text-lg md:text-xl mb-3 tracking-tight leading-tight break-words ${isLead ? 'text-white' : 'themed-text'}`}>{name}</h3>
-    <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${isLead ? 'text-white/80' : 'text-primary-600/70'}`}>{role}</p>
-  </motion.div>
-);
 
 export default Home;
