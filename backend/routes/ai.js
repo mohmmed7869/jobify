@@ -14,14 +14,11 @@ const Application = require('../models/Application');
 
 const router = express.Router();
 
-// @desc    ?????? ??? ?????? ????? ????? (SCORING -> LOCAL_AI)
+// @desc    الحصول على توصيات وظائف شخصية (SCORING)
 router.get('/recommendations', protect, async (req, res) => {
   try {
     if (req.user.role !== 'jobseeker') {
-      return res.status(403).json({ success: false, message: '??? ?????? ????? ???????? ?? ??? ???' });
-    }
-    if (!req.user.aiSettings?.enableRecommendations) {
-      return res.status(400).json({ success: false, message: '???? ???????? ??? ????? ?? ????????' });
+      return res.status(403).json({ success: false, message: 'هذه الخدمة متاحة للباحثين عن عمل فقط' });
     }
 
     const limit = parseInt(req.query.limit) || 10;
@@ -35,12 +32,8 @@ router.get('/recommendations', protect, async (req, res) => {
         const recommendationsWithScores = await Promise.all(
           recommendations.map(async (job) => {
             try {
-              const matchingScore = await calculateMatchingScore(job, req.user, null);
-              return {
-                ...job.toObject(),
-                matchingScore: matchingScore.matchingScore,
-                matchDetails: matchingScore
-              };
+              const match = await calculateMatchingScore(job, req.user, null);
+              return { ...job.toObject(), matchingScore: match.matchingScore, matchDetails: match };
             } catch (error) {
               return { ...job.toObject(), matchingScore: 0, matchDetails: null };
             }
@@ -51,19 +44,22 @@ router.get('/recommendations', protect, async (req, res) => {
       }
     });
 
-    res.status(200).json({ success: true, count: result.result?.length || 0, data: result.result, _ai_metrics: { layer_used: result.layer_used, cached: result.cached, execution_time_ms: result.execution_time_ms, confidence: result.confidence, traceId: result.traceId } });
+    res.status(200).json({ 
+      success: true, 
+      count: result.result?.length || 0, 
+      data: result.result,
+      _ai_metrics: { layer_used: result.layer_used, cached: result.cached, execution_time_ms: result.execution_time_ms, confidence: result.confidence, traceId: result.traceId }
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: `??? ?? ?????? (${error.message})` });
+    res.status(500).json({ success: false, message: `خطأ في الخادم (${error.message})` });
   }
 });
 
-// @desc    ????? ????? ?? ??????? (SCORING -> LOCAL_AI)
+// @desc    البحث الذكي في الوظائف (SCORING)
 router.post('/smart-search', protect, async (req, res) => {
   try {
     const { query } = req.body;
-    if (!query || query.trim().length === 0) {
-      return res.status(400).json({ success: false, message: '???? ????? ????? ?????' });
-    }
+    if (!query) return res.status(400).json({ success: false, message: 'يرجى إدخال كلمات البحث' });
 
     const result = await aiOrchestrator.routeRequest({
       taskName: 'SMART_SEARCH_SCORING',
@@ -72,13 +68,10 @@ router.post('/smart-search', protect, async (req, res) => {
       localAIFunction: async () => {
         const searchCriteria = await intelligentJobSearch(query, req.user);
         searchCriteria.$and = searchCriteria.$and || [];
-        searchCriteria.$and.push({ status: '???' });
-
-        const jobs = await Job.find(searchCriteria)
-          .populate('company', 'name employerProfile.companyLogo')
-          .sort('-createdAt')
-          .limit(20);
-
+        searchCriteria.$and.push({ status: 'نشط' });
+        
+        const jobs = await Job.find(searchCriteria).populate('company', 'name employerProfile.companyLogo').sort('-createdAt').limit(20);
+        
         let jobsWithScores = jobs;
         if (req.user.role === 'jobseeker') {
           jobsWithScores = await Promise.all(
@@ -86,7 +79,7 @@ router.post('/smart-search', protect, async (req, res) => {
               try {
                 const match = await calculateMatchingScore(job, req.user, null);
                 return { ...job.toObject(), matchingScore: match.matchingScore };
-              } catch (error) {
+              } catch(e) {
                 return { ...job.toObject(), matchingScore: 0 };
               }
             })
@@ -97,170 +90,222 @@ router.post('/smart-search', protect, async (req, res) => {
       }
     });
 
-    res.status(200).json({ success: true, count: result.result?.length || 0, data: result.result, _ai_metrics: { layer_used: result.layer_used, cached: result.cached, execution_time_ms: result.execution_time_ms, confidence: result.confidence, traceId: result.traceId } });
+    res.status(200).json({ 
+      success: true, 
+      count: result.result?.length || 0, 
+      data: result.result,
+      _ai_metrics: { layer_used: result.layer_used, cached: result.cached, execution_time_ms: result.execution_time_ms, confidence: result.confidence, traceId: result.traceId }
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: `??? ?? ?????? (${error.message})` });
+    res.status(500).json({ success: false, message: `خطأ في الخادم (${error.message})` });
   }
 });
 
-// @desc    ????? ?????? ??????? ??????? (REASONING -> GEMINI_AI)
+// @desc    تحليل وتحسين متطلبات الوظيفة (GENERATION)
 router.post('/improve-job-requirements', protect, async (req, res) => {
   try {
     const { jobId } = req.body;
-    if (!jobId || jobId === 'undefined') {
-      return res.status(400).json({ success: false, message: '???? ????? ???? ??????? (jobId ?????)' });
-    }
+    if (!jobId || jobId === 'undefined') return res.status(400).json({ success: false, message: 'jobId مطلوب' });
 
     const job = await Job.findById(jobId);
-    if (!job) return res.status(404).json({ success: false, message: '??????? ??? ??????' });
+    if (!job) return res.status(404).json({ success: false, message: 'الوظيفة غير موجودة' });
 
     const result = await aiOrchestrator.routeRequest({
-      taskName: 'IMPROVE_JOB_REQUIREMENTS_REASONING',
+      taskName: 'IMPROVE_JOB_REASONING_GENERATION',
       payload: { jobId },
       useCache: true,
       geminiFunction: async () => {
-        const jobContext = `
-          ???????: ${job.title}
-          ???????: ${job.category}
-          ????? ??????: ${job.description}
-          ???????? ???????: ${job.requirements?.skills?.join(', ') || '??? ?????'}
-        `;
-        const geminiPrompt = `??? ???? ?????. ??? ??? ??????? ?????? ???????:\n${jobContext}\n??? ?? JSON ???: {"recommendedSkills":["?????1"],"descriptionImprovement":"??","suggestedExperience":"??","suggestedEducation":"??","whyTheseChanges":"??"}`;
-        
-        const geminiText = await generateReasoning(geminiPrompt);
-        const cleaned = geminiText.replace(/```json|```/g, '').trim();
-        return JSON.parse(cleaned);
+        const prompt = `أنت خبير توظيف. حلل هذه الوظيفة واقترح تحسينات:\nالوظيفة: ${job.title}\nالمهارات: ${job.requirements?.skills?.join(', ')}\nأجب بـ JSON فقط: {"recommendedSkills":["مهارة1"],"descriptionImprovement":"نص","suggestedExperience":"نص","suggestedEducation":"نص","whyTheseChanges":"نص"}`;
+        const aiResponse = await generateReasoning(prompt);
+        return JSON.parse(aiResponse.replace(/```json|```/g, '').trim());
       }
     });
 
-    res.status(200).json({ success: true, data: result.result, _ai_metrics: { layer_used: result.layer_used, cached: result.cached, execution_time_ms: result.execution_time_ms, confidence: result.confidence, traceId: result.traceId } });
+    res.status(200).json({ 
+      success: true, 
+      data: result.result,
+      _ai_metrics: { layer_used: result.layer_used, cached: result.cached, execution_time_ms: result.execution_time_ms, confidence: result.confidence, traceId: result.traceId }
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: `??? ?? ?????? (${error.message})` });
+    res.status(500).json({ success: false, message: `خطأ في الخادم (${error.message})` });
   }
 });
 
-// @desc    ????? ?????? ??????? ??????? ????????? (SCORING -> LOCAL_AI ONLY)
+// @desc    تحليل السيرة الذاتية بالذكاء الاصطناعي (SCORING/HYBRID)
 router.post('/analyze-resume', protect, async (req, res) => {
   try {
     const { resumeText, jobId } = req.body;
-    if (!resumeText) return res.status(400).json({ success: false, message: '???? ????? ?? ?????? ???????' });
+    if (!resumeText) return res.status(400).json({ success: false, message: 'نص السيرة مطلوب' });
 
     const result = await aiOrchestrator.routeRequest({
-      taskName: 'RESUME_ANALYSIS_SCORING',
+      taskName: 'RESUME_ANALYSIS_HYBRID',
       payload: { resumeLength: resumeText.length, jobId },
       useCache: true,
       localAIFunction: async () => {
-        const pythonAiUrl = process.env.PYTHON_AI_SERVICE_URL;
+        const pythonUrl = process.env.PYTHON_AI_SERVICE_URL;
         let analysis = { skills: [], experience: 0, education: [], strengths: [], improvements: [], overallScore: 0 };
-        
-        if (pythonAiUrl) {
+        if (pythonUrl) {
           try {
-            const pythonRes = await axios.post(`${pythonAiUrl}/analyze-resume`, { resume_text: resumeText });
+            const pythonRes = await axios.post(`${pythonUrl}/analyze-resume`, { resume_text: resumeText });
             if (pythonRes.data) {
-              analysis = {
-                skills: pythonRes.data.skills || [],
-                experience: pythonRes.data.experience_years || 0,
-                education: Array.isArray(pythonRes.data.education) ? pythonRes.data.education : [pythonRes.data.education?.degree].filter(Boolean),
-                strengths: pythonRes.data.strengths || [],
-                improvements: pythonRes.data.improvements || [],
-                overallScore: pythonRes.data.score || 0
-              };
+              analysis = { ...pythonRes.data };
+              analysis.experience = pythonRes.data.experience_years || 0;
             }
-          } catch (e) {
-            console.error('Python API Failed', e.message);
-          }
+          } catch(e) {}
         }
-
+        
         let jobMatch = null;
         if (jobId) {
           const job = await Job.findById(jobId);
           if (job) {
-            const tempProfile = { jobseekerProfile: { skills: analysis.skills, experience: Array(analysis.experience).fill({}), education: analysis.education.map(edu => ({ degree: edu })) } };
+            const tempProfile = { jobseekerProfile: { skills: analysis.skills, experience: Array(analysis.experience).fill({}), education: analysis.education?.map(edu => ({ degree: edu })) || [] } };
             const resumeAnalysis = { skills: analysis.skills, experience: Array(analysis.experience).fill({}) };
             jobMatch = await calculateMatchingScore(job, tempProfile, resumeAnalysis);
           }
         }
         return { analysis, jobMatch };
+      },
+      geminiFunction: async () => {
+         const prompt = `حلل السيرة الذاتية التالية واستخرج المعلومات بدقة:\n${resumeText}\nأجب بـ JSON فقط:\n{"skills":["مهارة1"],"experience_years":0,"education":["مؤهل1"],"strengths":["نقطة قوة"],"improvements":["تحسين"],"overall_score":75}`;
+         const text = await generateReasoning(prompt);
+         const parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
+         let jobMatch = null;
+         if (jobId) {
+            const job = await Job.findById(jobId);
+            if (job) {
+               const tempProfile = { jobseekerProfile: { skills: parsed.skills || [], experience: Array(parsed.experience_years || 0).fill({}) } };
+               jobMatch = await calculateMatchingScore(job, tempProfile, { skills: parsed.skills || [], experience: [] });
+            }
+         }
+         return { analysis: parsed, jobMatch };
       }
     });
 
-    res.status(200).json({ success: true, data: result.result, _ai_metrics: { layer_used: result.layer_used, cached: result.cached, execution_time_ms: result.execution_time_ms, confidence: result.confidence, traceId: result.traceId } });
+    res.status(200).json({ 
+      success: true, 
+      data: result.result,
+      _ai_metrics: { layer_used: result.layer_used, cached: result.cached, execution_time_ms: result.execution_time_ms, confidence: result.confidence, traceId: result.traceId }
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: `??? ?? ?????? (${error.message})` });
+    res.status(500).json({ success: false, message: `خطأ في الخادم (${error.message})` });
   }
 });
 
-// @desc    ????? ??? ????? ??????? ????????? (REASONING -> GEMINI_AI)
+// @desc    إنشاء وصف وظيفة بالذكاء الاصطناعي (GENERATION)
 router.post('/generate-job-description', protect, async (req, res) => {
   try {
     const { jobTitle, industry, experienceLevel, keySkills, companyInfo } = req.body;
-    if (!jobTitle) return res.status(400).json({ success: false, message: '????? ??????? ?????' });
+    if (!jobTitle) return res.status(400).json({ success: false, message: 'عنوان الوظيفة مطلوب' });
 
     const result = await aiOrchestrator.routeRequest({
-      taskName: 'GENERATE_JOB_DESC_REASONING',
+      taskName: 'GENERATE_JOB_DESC_GENERATION',
       payload: { jobTitle, industry },
       useCache: true,
       geminiFunction: async () => {
-        const isCompanyDesc = jobTitle === '??? ??????' || jobTitle === '??????? ??????';
+        const isCompanyDesc = jobTitle === 'وصف الشركة' || jobTitle === 'بروفايل الشركة';
         const prompt = isCompanyDesc
-          ? `???? ????? ????????? ?????:\n??? ??????: ${companyInfo}\n??????: ${industry}\n????: ????? ????? ???? ?????.`
-          : `???? ??? ?????:\n???????: ${jobTitle}\n???????: ${industry}\n????????: ${keySkills}\n??????: ${companyInfo}\n????: ?????? ????????? ???????? ?????.`;
-        
-        const generatedDescription = await generateReasoning(prompt);
-        return { description: generatedDescription };
+          ? `أنشئ وصفاً احترافياً لشركة:\nاسم الشركة: ${companyInfo}\nالمجال: ${industry}\nاشمل: نبذة، رؤية، بيئة العمل.`
+          : `أنشئ وصف وظيفة:\nالوظيفة: ${jobTitle}\nالصناعة: ${industry}\nالمهارات: ${keySkills}\nالشركة: ${companyInfo}\nاشمل: مقدمة، مسؤوليات، متطلبات، مزايا.`;
+        const text = await generateReasoning(prompt);
+        return { description: text, suggestions: ['راجع الوصف وخصصه', 'أضف الراتب'] };
       }
     });
 
-    res.status(200).json({ success: true, data: result.result, _ai_metrics: { layer_used: result.layer_used, cached: result.cached, execution_time_ms: result.execution_time_ms, confidence: result.confidence, traceId: result.traceId } });
+    res.status(200).json({ 
+      success: true, 
+      data: result.result,
+      _ai_metrics: { layer_used: result.layer_used, cached: result.cached, execution_time_ms: result.execution_time_ms, confidence: result.confidence, traceId: result.traceId }
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: `??? ?? ?????? (${error.message})` });
+    res.status(500).json({ success: false, message: `خطأ في الخادم (${error.message})` });
   }
 });
 
-// @desc    ????? ???????? (SCORING -> LOCAL_AI)
-router.post('/analyze-interview', protect, async (req, res) => {
+// @desc    تحسين السيرة الذاتية بالذكاء الاصطناعي (GENERATION)
+router.post('/improve-resume', protect, async (req, res) => {
   try {
-    const { transcript, notes, roomId, jobId } = req.body;
-    if (!transcript && !notes) return res.status(400).json({ success: false, message: '?? ???? ?????? ???????' });
+    const { resumeText, targetJob } = req.body;
+    if (!resumeText) return res.status(400).json({ success: false, message: 'نص السيرة مطلوب' });
 
     const result = await aiOrchestrator.routeRequest({
-      taskName: 'INTERVIEW_ANALYSIS_SCORING',
-      payload: { roomId, jobId, length: transcript?.length },
-      useCache: false,
-      localAIFunction: async () => {
-        const pythonAiUrl = process.env.PYTHON_AI_SERVICE_URL;
-        if (pythonAiUrl) {
-          const pythonRes = await axios.post(`${pythonAiUrl}/analyze-interview`, { transcript, notes, job_id: jobId });
-          return pythonRes.data;
-        }
-        return { score: 75, strengths: ['?????'], improvements: ['??????'], confidence: 75 };
+      taskName: 'IMPROVE_RESUME_GENERATION',
+      payload: { resumeLength: resumeText.length, targetJob },
+      useCache: true,
+      geminiFunction: async () => {
+        const prompt = `أنت خبير سير ذاتية. حلل السيرة وقدم 5 نقاط تحسين:\n${resumeText}\nالوظيفة المستهدفة: ${targetJob}`;
+        const text = await generateReasoning(prompt);
+        const suggestions = text.split('\n').filter(l => l.trim().length > 5).map(l => l.replace(/^[\-\*\d\.]+\s*/, '').trim());
+        return { suggestions, tips: ['استخدم أرقام', 'لا تتجاوز صفحتين', 'راجع الأخطاء'] };
       }
     });
 
-    res.status(200).json({ success: true, data: result.result, _ai_metrics: { layer_used: result.layer_used, cached: result.cached, execution_time_ms: result.execution_time_ms, confidence: result.confidence, traceId: result.traceId } });
+    res.status(200).json({ 
+      success: true, 
+      data: result.result,
+      _ai_metrics: { layer_used: result.layer_used, cached: result.cached, execution_time_ms: result.execution_time_ms, confidence: result.confidence, traceId: result.traceId }
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: `??? ?? ?????? (${error.message})` });
+    res.status(500).json({ success: false, message: `خطأ في الخادم (${error.message})` });
   }
 });
 
-// @desc    ????? ??? ????? (SCORING -> LOCAL_AI)
+// @desc    تحليل المقابلة (SCORING)
+router.post('/analyze-interview', protect, async (req, res) => {
+  try {
+    const { transcript, notes, jobId } = req.body;
+    
+    const result = await aiOrchestrator.routeRequest({
+      taskName: 'EVALUATE_INTERVIEW_SCORING',
+      payload: { transcriptLength: transcript?.length, jobId },
+      useCache: false,
+      localAIFunction: async () => {
+        const pythonUrl = process.env.PYTHON_AI_SERVICE_URL;
+        if (pythonUrl) {
+          try {
+            const pythonRes = await axios.post(`${pythonUrl}/analyze-interview`, { transcript, notes, job_id: jobId });
+            if (pythonRes.data) return pythonRes.data;
+          } catch(e) {}
+        }
+        return { score: 70, strengths: ["تواصل"], improvements: ["السرعة"], confidence: 75 };
+      }
+    });
+
+    res.status(200).json({ 
+      success: true, 
+      data: result.result,
+      _ai_metrics: { layer_used: result.layer_used, cached: result.cached, execution_time_ms: result.execution_time_ms, confidence: result.confidence, traceId: result.traceId }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: `خطأ في الخادم (${error.message})` });
+  }
+});
+
+// @desc    تحليل سوق العمل (SCORING)
 router.get('/market-analysis', protect, async (req, res) => {
   try {
     const result = await aiOrchestrator.routeRequest({
       taskName: 'MARKET_ANALYSIS_SCORING',
-      payload: req.query,
+      payload: { query: req.query },
       useCache: true,
       localAIFunction: async () => {
-        const totalJobs = await Job.countDocuments({ status: '???' });
-        const jobsByIndustry = await Job.aggregate([{ $match: { status: '???' } }, { $group: { _id: '$industry', count: { $sum: 1 } } }, { $sort: { count: -1 } }, { $limit: 10 }]);
-        const topSkills = await Job.aggregate([{ $match: { status: '???' } }, { $unwind: '$requirements.skills' }, { $group: { _id: '$requirements.skills', count: { $sum: 1 } } }, { $sort: { count: -1 } }, { $limit: 10 }]);
-        return { overview: { totalActiveJobs: totalJobs }, jobsByIndustry, topSkills };
+        const totalJobs = await Job.countDocuments({ status: 'نشط' });
+        const jobsByIndustry = await Job.aggregate([{ $match: { status: 'نشط' } }, { $group: { _id: '$industry', count: { $sum: 1 } } }]);
+        const totalApplications = await Application.countDocuments();
+        return { 
+          overview: { totalActiveJobs: totalJobs, totalApplications, competitionRatio: totalApplications / totalJobs || 0 }, 
+          jobsByIndustry,
+          insights: ['نمو مستمر في السوق']
+        };
       }
     });
 
-    res.status(200).json({ success: true, data: result.result, _ai_metrics: { layer_used: result.layer_used, cached: result.cached, execution_time_ms: result.execution_time_ms, confidence: result.confidence, traceId: result.traceId } });
+    res.status(200).json({ 
+      success: true, 
+      data: result.result,
+      _ai_metrics: { layer_used: result.layer_used, cached: result.cached, execution_time_ms: result.execution_time_ms, confidence: result.confidence, traceId: result.traceId }
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: `??? ?? ?????? (${error.message})` });
+    res.status(500).json({ success: false, message: `خطأ في الخادم (${error.message})` });
   }
 });
 
