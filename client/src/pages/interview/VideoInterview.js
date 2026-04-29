@@ -352,13 +352,38 @@ const VideoInterview = () => {
 
     pc.onconnectionstatechange = () => {
       console.log(`Connection [${targetSocketId.slice(-4)}]: ${pc.connectionState}`);
-      if (pc.connectionState === 'connected') setConnectionStatus('connected');
+      if (pc.connectionState === 'connected') {
+        setConnectionStatus('connected');
+      }
       if (pc.connectionState === 'failed') {
         setConnectionStatus('failed');
-        toast.error('فشل الاتصال - جاري إعادة المحاولة...');
-        pc.restartIce();
+        console.warn('⚠️ ICE failed for:', targetSocketId, '- triggering ICE restart offer');
+        // restartIce() alone is not enough on Android Chrome.
+        // We must create a new offer with iceRestart:true and resend it.
+        setTimeout(async () => {
+          try {
+            if (pc.signalingState === 'stable') {
+              const restartOffer = await pc.createOffer({ iceRestart: true, offerToReceiveAudio: true, offerToReceiveVideo: true });
+              await pc.setLocalDescription(restartOffer);
+              socketRef.current?.emit('offer', { offer: restartOffer, targetSocketId });
+              console.log('🔄 ICE restart offer sent to:', targetSocketId);
+            }
+          } catch (e) {
+            console.error('ICE restart failed:', e.message);
+          }
+        }, 1000);
       }
-      if (pc.connectionState === 'disconnected') setConnectionStatus('idle');
+      if (pc.connectionState === 'disconnected') {
+        setConnectionStatus('disconnected');
+        // Give 5 seconds for natural recovery before forcing a restart
+        setTimeout(() => {
+          const currentPc = peersRef.current.get(targetSocketId);
+          if (currentPc && currentPc.connectionState === 'disconnected') {
+            console.warn('Still disconnected after 5s, forcing ICE restart...');
+            currentPc.restartIce();
+          }
+        }, 5000);
+      }
     };
 
     pc.ontrack = (event) => {
@@ -703,8 +728,31 @@ const VideoInterview = () => {
                 <span>⚠ إنترنت ضعيف</span>
               </div>
             )}
-            {connectionStatus === 'failed' && (
-              <div className="text-red-400 text-xs font-bold">⚠ فشل الاتصال</div>
+            {(connectionStatus === 'failed' || connectionStatus === 'disconnected') && (
+              <div className="flex items-center gap-2">
+                <div className="text-red-400 text-xs font-bold">
+                  {connectionStatus === 'failed' ? '⚠ فشل الاتصال' : '⚠ انقطع الاتصال'}
+                </div>
+                <button
+                  onClick={() => {
+                    // إعادة الاتصال يدوياً: إعادة بناء peer connections من الصفر
+                    const peers = Array.from(peersRef.current.keys());
+                    peers.forEach(socketId => {
+                      peersRef.current.get(socketId)?.close();
+                      peersRef.current.delete(socketId);
+                    });
+                    setConnectionStatus('connecting');
+                    setTimeout(() => {
+                      participants
+                        .filter(p => p.socketId !== socket?.id)
+                        .forEach(p => createAndSendOffer(p.socketId));
+                    }, 500);
+                  }}
+                  className="text-[10px] font-black bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded-lg transition-all"
+                >
+                  إعادة الاتصال
+                </button>
+              </div>
             )}
           </div>
 
