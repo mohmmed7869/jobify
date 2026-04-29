@@ -141,6 +141,7 @@ const VideoInterview = () => {
   const [notes, setNotes] = useState('');
   const [isHost, setIsHost] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState('idle');
+  const [networkQuality, setNetworkQuality] = useState('good'); // 'good', 'poor'
 
   // iceServers كـ ref ثابت لتجنب إعادة بناء دوال WebRTC عند كل تغيير
   const iceServersRef = useRef([
@@ -208,6 +209,39 @@ const VideoInterview = () => {
     return () => clearInterval(t);
   }, [isSetupComplete]);
 
+  // ===== مراقب جودة الإنترنت =====
+  useEffect(() => {
+    if (!isSetupComplete || peersRef.current.size === 0) return;
+    
+    const interval = setInterval(async () => {
+      let isPoor = false;
+      for (const [id, pc] of peersRef.current.entries()) {
+        try {
+          const stats = await pc.getStats();
+          stats.forEach(report => {
+            if (report.type === 'inbound-rtp' && report.kind === 'video') {
+              const packetsLost = report.packetsLost || 0;
+              const packetsReceived = report.packetsReceived || 1;
+              const lossRate = packetsLost / (packetsReceived + packetsLost);
+              if (lossRate > 0.05) isPoor = true; // أكثر من 5% فقدان للبيانات
+            }
+            if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+              const rtt = report.currentRoundTripTime || report.roundTripTime || 0;
+              if (rtt > 0.4) isPoor = true; // أكثر من 400ms تأخير
+            }
+          });
+        } catch (err) {}
+      }
+      
+      setNetworkQuality(isPoor ? 'poor' : 'good');
+      if (isPoor) {
+        toast('اتصالك ضعيف، يتم التركيز على جودة الصوت 📡', { id: 'network-poor' });
+      }
+    }, 5000);
+    
+    return () => clearInterval(interval);
+  }, [isSetupComplete]);
+
   const formatDuration = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
   // ===== جلب الكاميرا والميكروفون =====
@@ -220,10 +254,18 @@ const VideoInterview = () => {
         return null;
       }
 
-      // طلب الكاميرا بإعدادات بسيطة لضمان التوافق مع جميع الأجهزة
+      // طلب الكاميرا بإعدادات مخصصة للإنترنت الضعيف (Network Adaptation)
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: true, // إلغاء دقة 720p الإجبارية لتفادي أخطاء الأجهزة القديمة
-        audio: true
+        video: {
+          width: { ideal: 640, max: 1280 },
+          height: { ideal: 360, max: 720 },
+          frameRate: { ideal: 15, max: 24 } // خفض الفريمات لتوفير البيانات بنسبة 60%
+        },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
       });
       localStreamRef.current = stream;
       setLocalStream(stream);
@@ -323,8 +365,18 @@ const VideoInterview = () => {
     const localStream = localStreamRef.current;
     if (localStream) {
       localStream.getTracks().forEach(track => {
-        pc.addTrack(track, localStream);
+        const sender = pc.addTrack(track, localStream);
         console.log(`✅ Added local ${track.kind} to peer ${targetSocketId.slice(-4)}`);
+        
+        // تقييد استهلاك الفيديو لضمان استقرار الصوت في الإنترنت الضعيف (Audio Priority)
+        if (track.kind === 'video') {
+          const params = sender.getParameters();
+          if (!params.encodings) params.encodings = [{}];
+          
+          // تقليل الـ Bitrate إلى 400kbps كحد أقصى للتعامل مع الإنترنت الضعيف
+          params.encodings[0].maxBitrate = 400000;
+          sender.setParameters(params).catch(e => console.warn('Could not set video params:', e));
+        }
       });
     } else {
       console.warn('⚠️ No local stream when creating peer for:', targetSocketId);
@@ -617,6 +669,11 @@ const VideoInterview = () => {
               <div className="flex items-center gap-1 text-yellow-400 text-xs font-bold">
                 <div className="w-2 h-2 border border-yellow-400 border-t-transparent rounded-full animate-spin" />
                 <span>يتصل...</span>
+              </div>
+            )}
+            {networkQuality === 'poor' && connectionStatus !== 'failed' && (
+              <div className="flex items-center gap-1 text-orange-400 text-xs font-bold animate-pulse">
+                <span>⚠ إنترنت ضعيف</span>
               </div>
             )}
             {connectionStatus === 'failed' && (
