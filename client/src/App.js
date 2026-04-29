@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
 import AIChatbot from './components/layout/AIChatbot';
+import BottomNav from './components/layout/BottomNav';
 import LoadingSpinner from './components/common/LoadingSpinner';
 
 // Pages
@@ -112,10 +113,11 @@ const AppLayout = ({ children }) => {
     <div className="min-h-screen flex flex-col mesh-gradient-vibrant bg-pattern-dots relative">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-primary-500/10 blur-[120px] pointer-events-none"></div>
       <Navbar />
-      <main className="flex-1 page-transition pt-24 relative z-10">
+      <main className="flex-1 page-transition pt-24 pb-16 md:pb-0 relative z-10">
         {children}
       </main>
       <AIChatbot />
+      <BottomNav />
       <Footer />
     </div>
   );
