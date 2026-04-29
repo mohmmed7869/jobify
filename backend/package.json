@@ -75,6 +75,7 @@
   "dependencies": {
     "@elastic/elasticsearch": "^8.11.0",
     "@fastify/cors": "^9.0.1",
+    "@google/generative-ai": "^0.21.0",
     "@hapi/joi": "^17.1.1",
     "@types/node": "^20.10.0",
     "archiver": "^6.0.1",
@@ -129,7 +130,6 @@
     "node-schedule": "^2.1.1",
     "nodemailer": "^6.9.7",
     "openai": "^6.15.0",
-    "@google/generative-ai": "^0.21.0",
     "passport": "^0.7.0",
     "passport-facebook": "^3.0.0",
     "passport-github2": "^0.1.12",
