@@ -254,20 +254,31 @@ const VideoInterview = () => {
         return null;
       }
 
-      // طلب الكاميرا بإعدادات مرنة لتفادي أخطاء الأندرويد (OverconstrainedError)
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: "user", // تشغيل الكاميرا الأمامية للهواتف
-          width: { ideal: 640 },
-          height: { ideal: 480 },
-          frameRate: { ideal: 15 } // استخدام ideal فقط لأن أجهزة الأندرويد ترفض max أحياناً
-        },
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        }
-      });
+      // طلب الكاميرا: محاولة الإعدادات المحسنة للإنترنت الضعيف أولاً
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: "user", // تشغيل الكاميرا الأمامية للهواتف
+            width: { ideal: 640 },
+            height: { ideal: 480 },
+            frameRate: { ideal: 15 }
+          },
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        });
+      } catch (advancedErr) {
+        console.warn('Advanced constraints failed (common on Android), falling back to basic:', advancedErr);
+        // المحاولة الثانية: إعدادات أساسية جداً لضمان عملها على أي جهاز (خاصة أندرويد)
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user" },
+          audio: true
+        });
+      }
+      
       localStreamRef.current = stream;
       setLocalStream(stream);
       return stream;
