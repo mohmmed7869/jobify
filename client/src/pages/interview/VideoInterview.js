@@ -293,13 +293,34 @@ const VideoInterview = () => {
     };
 
     pc.ontrack = (event) => {
-      console.log(`📹 ontrack [${event.track.kind}] from:`, targetSocketId);
-      const incomingStream = event.streams && event.streams[0]
-        ? event.streams[0]
-        : (() => { const s = new MediaStream(); s.addTrack(event.track); return s; })();
+      const { track } = event;
+      console.log(`📹 ontrack [${track.kind}] from:`, targetSocketId);
 
-      remoteStreamsRef.current.set(targetSocketId, incomingStream);
-      setRemoteStreams(prev => new Map(prev).set(targetSocketId, incomingStream));
+      // استخدم stream موحد لكل مشارك يجمع الصوت والفيديو معاً
+      // لتجنب خسارة أحد المسارين عند وصولهما في أحداث منفصلة
+      let stream = remoteStreamsRef.current.get(targetSocketId);
+
+      if (event.streams && event.streams[0]) {
+        // المتصفح قدّم stream جاهزاً - استخدمه مباشرة
+        stream = event.streams[0];
+        remoteStreamsRef.current.set(targetSocketId, stream);
+      } else {
+        // بناء stream يدوياً: أضف المسار للـ stream الموجود أو أنشئ جديداً
+        if (!stream) {
+          stream = new MediaStream();
+          remoteStreamsRef.current.set(targetSocketId, stream);
+        }
+        // تجنب إضافة نفس المسار مرتين
+        if (!stream.getTrackById(track.id)) {
+          stream.addTrack(track);
+        }
+      }
+
+      console.log(`✅ Remote stream [${targetSocketId.slice(-4)}] tracks: ${stream.getTracks().map(t => t.kind).join(', ')}`);
+      // أنشئ نسخة جديدة لإجبار React على إعادة رسم الـ video element
+      const freshRef = new MediaStream(stream.getTracks());
+      remoteStreamsRef.current.set(targetSocketId, freshRef);
+      setRemoteStreams(prev => new Map(prev).set(targetSocketId, freshRef));
     };
 
     // أضف tracks المحلية الآن
