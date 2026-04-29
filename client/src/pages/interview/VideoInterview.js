@@ -174,6 +174,16 @@ const VideoInterview = () => {
   const remoteStreamsRef = useRef(new Map());   // socketId -> MediaStream (ref لتجنب stale closures)
   const chatEndRef = useRef(null);
   const messageInputRef = useRef(null);
+  const hasJoinedRoom = useRef(false);
+
+  // إغلاق جميع الاتصالات عند تدمير المكون لتجنب Memory Leaks وتداخل الاتصالات
+  useEffect(() => {
+    return () => {
+      peersRef.current.forEach(pc => pc.close());
+      peersRef.current.clear();
+      hasJoinedRoom.current = false;
+    };
+  }, []);
 
   const queryParams = new URLSearchParams(location.search);
   const jobTitle = queryParams.get('job') || 'مقابلة وظيفية';
@@ -265,27 +275,27 @@ const VideoInterview = () => {
     pc.ontrack = (event) => {
       console.log(`📹 Track received [${event.track.kind}] from:`, targetSocketId);
 
-      // الطريقة الأضمن: استخدام event.track مباشرة لبناء الـ stream
-      // event.streams[0] قد يكون undefined في بعض المتصفحات والإعدادات
       let stream = remoteStreamsRef.current.get(targetSocketId);
+      
       if (!stream) {
-        stream = new MediaStream();
+        if (event.streams && event.streams[0]) {
+          stream = event.streams[0];
+        } else {
+          stream = new MediaStream();
+          stream.addTrack(event.track);
+        }
         remoteStreamsRef.current.set(targetSocketId, stream);
+        setRemoteStreams(prev => new Map(prev).set(targetSocketId, stream));
+      } else {
+        const existingTrack = stream.getTracks().find(t => t.kind === event.track.kind);
+        if (!existingTrack) {
+          stream.addTrack(event.track);
+        }
+        // تحديث الـ state لضمان التحديث إذا لزم الأمر، لكن بنفس الـ reference
+        setRemoteStreams(prev => new Map(prev).set(targetSocketId, stream));
       }
-
-      // أضف الـ track فقط إذا لم يكن موجوداً مسبقاً
-      const existingTrack = stream.getTracks().find(t => t.kind === event.track.kind);
-      if (existingTrack) {
-        stream.removeTrack(existingTrack);
-      }
-      stream.addTrack(event.track);
 
       console.log(`✅ Stream now has ${stream.getTracks().length} track(s)`);
-
-      // أنشئ نسخة جديدة من الـ stream لإجبار React على إعادة الرسم
-      const freshStream = new MediaStream(stream.getTracks());
-      remoteStreamsRef.current.set(targetSocketId, freshStream);
-      setRemoteStreams(prev => new Map(prev).set(targetSocketId, freshStream));
     };
 
     // أضف tracks المحلية
@@ -370,12 +380,15 @@ const VideoInterview = () => {
   useEffect(() => {
     if (!socket || !isSetupComplete || !roomId) return;
 
-    // الانضمام للغرفة
-    socket.emit('join-room', {
-      roomId,
-      userId: myId,
-      userInfo: { name: user?.name, role: user?.role }
-    });
+    // الانضمام للغرفة فقط إذا لم ننضم مسبقاً (لتجنب الـ Glare عند إعادة رسم الـ useEffect)
+    if (!hasJoinedRoom.current) {
+      socket.emit('join-room', {
+        roomId,
+        userId: myId,
+        userInfo: { name: user?.name, role: user?.role }
+      });
+      hasJoinedRoom.current = true;
+    }
 
     const onRoomState = (state) => {
       console.log('Room state received:', state);
