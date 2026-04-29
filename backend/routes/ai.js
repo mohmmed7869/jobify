@@ -20,7 +20,7 @@ try {
   const GEMINI_KEY = process.env.GEMINI_API_KEY;
   if (GEMINI_KEY) {
     const genAI = new GoogleGenerativeAI(GEMINI_KEY);
-    geminiModel = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    geminiModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     console.log('✅ Gemini AI initialized');
   } else {
     console.warn('⚠️ GEMINI_API_KEY not set - using fallback responses');
