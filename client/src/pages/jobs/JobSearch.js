@@ -13,6 +13,7 @@ const JobSearch = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('list');
+  const [sortBy, setSortBy] = useState('newest');
   const [filters, setFilters] = useState({
     category: '',
     jobType: '',
@@ -28,6 +29,7 @@ const JobSearch = () => {
     try {
       const queryParams = new URLSearchParams({
         search: searchTerm,
+        sort: sortBy,
         ...Object.fromEntries(Object.entries(filters).filter(([_, v]) => v !== ''))
       });
       const response = await axios.get(`/api/jobs?${queryParams}`);
@@ -37,7 +39,7 @@ const JobSearch = () => {
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, filters]);
+  }, [searchTerm, filters, sortBy]);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
@@ -194,9 +196,13 @@ const JobSearch = () => {
               
               {/* خيارات العرض والترتيب */}
               <div className="flex items-center gap-2">
-                <select className="bg-white border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg px-3 py-2 outline-none">
-                  <option>الأحدث</option>
-                  <option>الأكثر صلة</option>
+                <select 
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="bg-white border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg px-3 py-2 outline-none"
+                >
+                  <option value="newest">الأحدث</option>
+                  <option value="relevant">الأكثر صلة</option>
                 </select>
                 <div className="hidden sm:flex bg-white border border-slate-200 rounded-lg overflow-hidden">
                   <button onClick={() => setViewMode('list')} className={`p-2 ${viewMode === 'list' ? 'bg-slate-100 text-primary-600' : 'text-slate-400 hover:text-slate-600'}`}>

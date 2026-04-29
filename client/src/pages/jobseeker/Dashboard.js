@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  FiArrowLeft, FiMapPin, FiStar,
+  FiArrowLeft, FiMapPin, FiStar, FiEye, FiBookmark,
   FiFileText, FiChevronRight, FiUser
 } from 'react-icons/fi';
 
@@ -29,6 +29,7 @@ const JobSeekerDashboard = () => {
   const navigate = useNavigate();
 
   const [recommendations, setRecs]  = useState([]);
+  const [stats, setStats]           = useState({ applications: 0, views: 0, saved: 0, matches: 0 });
   const [loading, setLoading]       = useState(true);
 
   const { pct: profilePct, next: nextStep } = calcStrength(user);
@@ -37,8 +38,22 @@ const JobSeekerDashboard = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const recsRes = await axios.get('/api/ai/recommendations?limit=3');
+        const [recsRes, statsRes] = await Promise.all([
+          axios.get('/api/ai/recommendations?limit=3'),
+          axios.get('/api/analytics/jobseeker').catch(() => null)
+        ]);
+        
         if (recsRes.data.success) setRecs(recsRes.data.data || []);
+        
+        if (statsRes?.data?.success) {
+          const s = statsRes.data.data;
+          setStats({
+            applications: s.applicationStats?.reduce((sum, i) => sum + i.count, 0) || 0,
+            views:        s.profileViews || 0,
+            saved:        user?.savedJobs?.length || 0,
+            matches:      s.bestApplications?.length || 0,
+          });
+        }
       } catch (e) {
         console.error(e);
       } finally {
@@ -77,8 +92,32 @@ const JobSeekerDashboard = () => {
         </div>
       </div>
 
-      {/* ══ المحتوى الرئيسي (3 بطاقات فقط) ══════════════ */}
+      {/* ══ المحتوى الرئيسي ══════════════════════════════ */}
       <div className="max-w-3xl mx-auto px-4 space-y-6">
+
+        {/* الإحصائيات (التحليل) */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { label: 'طلباتك',       value: stats.applications, icon: <FiFileText size={18} />,  color: 'text-blue-600 bg-blue-50'    },
+            { label: 'مشاهدات ملفك', value: stats.views,        icon: <FiEye size={18} />,       color: 'text-emerald-600 bg-emerald-50' },
+            { label: 'محفوظة',       value: stats.saved,        icon: <FiBookmark size={18} />,  color: 'text-violet-600 bg-violet-50' },
+            { label: 'مطابقات',      value: stats.matches,      icon: <FiStar size={18} />,      color: 'text-orange-600 bg-orange-50' },
+          ].map((s, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.07 }}
+              className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm"
+            >
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 ${s.color}`}>
+                {s.icon}
+              </div>
+              <p className="text-2xl font-bold text-slate-900">{s.value}</p>
+              <p className="text-xs text-slate-400 mt-0.5">{s.label}</p>
+            </motion.div>
+          ))}
+        </div>
 
         {/* 1. الوظائف المناسبة لك */}
         <section className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 sm:p-6">
