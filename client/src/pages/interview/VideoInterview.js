@@ -141,7 +141,9 @@ const VideoInterview = () => {
   const [notes, setNotes] = useState('');
   const [isHost, setIsHost] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState('idle');
-  const [iceServers, setIceServers] = useState([
+
+  // iceServers كـ ref ثابت لتجنب إعادة بناء دوال WebRTC عند كل تغيير
+  const iceServersRef = useRef([
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun.cloudflare.com:3478' },
@@ -150,13 +152,17 @@ const VideoInterview = () => {
     { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
   ]);
 
-  // جلب ICE servers من الـ backend عند بداية الصفحة
+  // socketRef لتجنب stale closures في WebRTC callbacks
+  const socketRef = useRef(null);
+  useEffect(() => { socketRef.current = socket; }, [socket]);
+
+  // جلب ICE servers وتخزينها في الـ ref مباشرة (لا تُحدث state = لا تُعيد رسم)
   useEffect(() => {
     axios.get('/api/interview/ice-servers')
       .then(res => {
         if (res.data?.success && res.data?.data?.iceServers) {
-          console.log('✅ ICE servers loaded from backend:', res.data.data.iceServers.length);
-          setIceServers(res.data.data.iceServers);
+          iceServersRef.current = res.data.data.iceServers;
+          console.log('✅ ICE servers loaded:', iceServersRef.current.length);
         }
       })
       .catch(err => console.warn('⚠️ Using default ICE servers:', err.message));
@@ -249,7 +255,7 @@ const VideoInterview = () => {
   }, [chatMessages]);
 
   // =====================================================
-  // WebRTC - إنشاء اتصال مع مستخدم آخر
+  // WebRTC - جميع الدوال تستخدم Refs لتجنب stale closures
   // =====================================================
   const addPendingCandidates = useCallback(async (socketId, pc) => {
     const candidates = pendingCandidates.current.get(socketId) || [];
@@ -259,112 +265,93 @@ const VideoInterview = () => {
     pendingCandidates.current.delete(socketId);
   }, []);
 
+  // createPeerConnection بدون أي dependency على state متغير
   const createPeerConnection = useCallback((targetSocketId) => {
     if (peersRef.current.has(targetSocketId)) {
       peersRef.current.get(targetSocketId).close();
+      peersRef.current.delete(targetSocketId);
     }
 
-    const pc = new RTCPeerConnection({ iceServers });
+    // نستخدم iceServersRef (ثابت) بدل iceServers (state)
+    const pc = new RTCPeerConnection({ iceServers: iceServersRef.current });
 
     pc.onicecandidate = ({ candidate }) => {
-      if (candidate && socket) {
-        socket.emit('ice-candidate', { candidate, targetSocketId });
+      if (candidate && socketRef.current) {
+        socketRef.current.emit('ice-candidate', { candidate, targetSocketId });
       }
     };
 
-    pc.oniceconnectionstatechange = () => {
-      const state = pc.iceConnectionState;
-      console.log(`ICE [${targetSocketId.slice(-4)}]: ${state}`);
-      if (state === 'connected' || state === 'completed') {
-        setConnectionStatus('connected');
-      } else if (state === 'failed') {
+    pc.onconnectionstatechange = () => {
+      console.log(`Connection [${targetSocketId.slice(-4)}]: ${pc.connectionState}`);
+      if (pc.connectionState === 'connected') setConnectionStatus('connected');
+      if (pc.connectionState === 'failed') {
         setConnectionStatus('failed');
-        toast.error('فشل الاتصال بالطرف الآخر - يحاول إعادة الاتصال...');
+        toast.error('فشل الاتصال - جاري إعادة المحاولة...');
         pc.restartIce();
-      } else if (state === 'disconnected') {
-        setConnectionStatus('idle');
       }
+      if (pc.connectionState === 'disconnected') setConnectionStatus('idle');
     };
 
     pc.ontrack = (event) => {
-      console.log(`📹 Track received [${event.track.kind}] from:`, targetSocketId);
+      console.log(`📹 ontrack [${event.track.kind}] from:`, targetSocketId);
+      const incomingStream = event.streams && event.streams[0]
+        ? event.streams[0]
+        : (() => { const s = new MediaStream(); s.addTrack(event.track); return s; })();
 
-      let stream = remoteStreamsRef.current.get(targetSocketId);
-      
-      if (!stream) {
-        if (event.streams && event.streams[0]) {
-          stream = event.streams[0];
-        } else {
-          stream = new MediaStream();
-          stream.addTrack(event.track);
-        }
-        remoteStreamsRef.current.set(targetSocketId, stream);
-        setRemoteStreams(prev => new Map(prev).set(targetSocketId, stream));
-      } else {
-        const existingTrack = stream.getTracks().find(t => t.kind === event.track.kind);
-        if (!existingTrack) {
-          stream.addTrack(event.track);
-        }
-        // تحديث الـ state لضمان التحديث إذا لزم الأمر، لكن بنفس الـ reference
-        setRemoteStreams(prev => new Map(prev).set(targetSocketId, stream));
-      }
-
-      console.log(`✅ Stream now has ${stream.getTracks().length} track(s)`);
+      remoteStreamsRef.current.set(targetSocketId, incomingStream);
+      setRemoteStreams(prev => new Map(prev).set(targetSocketId, incomingStream));
     };
 
-    // أضف tracks المحلية
-    const stream = localStreamRef.current;
-    if (stream) {
-      stream.getTracks().forEach(track => {
-        pc.addTrack(track, stream);
-        console.log(`Added local ${track.kind} track to peer`);
+    // أضف tracks المحلية الآن
+    const localStream = localStreamRef.current;
+    if (localStream) {
+      localStream.getTracks().forEach(track => {
+        pc.addTrack(track, localStream);
+        console.log(`✅ Added local ${track.kind} to peer ${targetSocketId.slice(-4)}`);
       });
     } else {
-      console.warn('No local stream when creating peer connection!');
+      console.warn('⚠️ No local stream when creating peer for:', targetSocketId);
     }
 
     peersRef.current.set(targetSocketId, pc);
     return pc;
-  }, [socket, iceServers]);
+  }, [addPendingCandidates]);
 
   const createAndSendOffer = useCallback(async (targetSocketId) => {
-    console.log('Creating offer for:', targetSocketId);
+    console.log('📤 Creating offer for:', targetSocketId);
     setConnectionStatus('connecting');
     const pc = createPeerConnection(targetSocketId);
     try {
       const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
       await pc.setLocalDescription(offer);
-      socket.emit('offer', { offer, targetSocketId });
+      socketRef.current?.emit('offer', { offer, targetSocketId });
     } catch (err) {
       console.error('Error creating offer:', err);
     }
-  }, [createPeerConnection, socket]);
+  }, [createPeerConnection]);
 
   const handleIncomingOffer = useCallback(async (offer, senderSocketId) => {
-    console.log('Handling offer from:', senderSocketId);
+    console.log('📥 Handling offer from:', senderSocketId);
     setConnectionStatus('connecting');
     const pc = createPeerConnection(senderSocketId);
     try {
-      // حماية من glare: إذا كان هناك offer محلي معلق نتجاهل الوارد
-      if (pc.signalingState === 'have-local-offer') {
-        console.warn('Glare detected - rolling back');
-        await pc.setLocalDescription({ type: 'rollback' });
-      }
       await pc.setRemoteDescription(new RTCSessionDescription(offer));
       await addPendingCandidates(senderSocketId, pc);
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
-      socket.emit('answer', { answer, targetSocketId: senderSocketId });
+      socketRef.current?.emit('answer', { answer, targetSocketId: senderSocketId });
     } catch (err) {
       console.error('Error handling offer:', err);
     }
-  }, [createPeerConnection, socket, addPendingCandidates]);
+  }, [createPeerConnection, addPendingCandidates]);
 
   const handleIncomingAnswer = useCallback(async (answer, senderSocketId) => {
     const pc = peersRef.current.get(senderSocketId);
     if (!pc) { console.warn('No peer for answer from:', senderSocketId); return; }
     try {
-      if (pc.signalingState !== 'have-local-offer') return;
+      if (pc.signalingState !== 'have-local-offer') {
+        console.warn('Ignoring answer in state:', pc.signalingState); return;
+      }
       await pc.setRemoteDescription(new RTCSessionDescription(answer));
       await addPendingCandidates(senderSocketId, pc);
     } catch (err) {
@@ -375,7 +362,6 @@ const VideoInterview = () => {
   const handleIncomingCandidate = useCallback(async (candidate, senderSocketId) => {
     const pc = peersRef.current.get(senderSocketId);
     if (!pc || !pc.remoteDescription) {
-      // احتفظ بـ candidates لحين جهوزية peer connection
       const pending = pendingCandidates.current.get(senderSocketId) || [];
       pending.push(candidate);
       pendingCandidates.current.set(senderSocketId, pending);
@@ -405,30 +391,27 @@ const VideoInterview = () => {
     }
 
     const onRoomState = (state) => {
-      console.log('Room state received:', state);
+      console.log('🏠 Room state:', state);
       setParticipants(state.users || []);
       setChatMessages(state.chatMessages || []);
       setIsRecording(state.recording || false);
-      // ❌ لا نُرسل offer هنا لتجنب حالة الـ glare
-      // المستخدمون الموجودون مسبقاً سيُرسلون offer لنا عبر حدث 'user-joined'
     };
 
     const onUserJoined = (participant) => {
-      console.log('User joined:', participant.userInfo?.name);
+      console.log('👤 User joined:', participant.userInfo?.name, participant.socketId);
       setParticipants(prev => {
-        const exists = prev.find(p => p.socketId === participant.socketId);
-        if (exists) return prev;
+        if (prev.find(p => p.socketId === participant.socketId)) return prev;
         return [...prev, participant];
       });
       toast.success(`${participant.userInfo?.name || 'مستخدم'} انضم للمقابلة`);
-      // ✅ المستخدم الموجود في الغرفة فقط هو من يُرسل الـ offer للداخل الجديد
-      // هذا يمنع حالة الـ glare حيث يرسل الطرفان offer في نفس الوقت
-      setTimeout(() => createAndSendOffer(participant.socketId), 500);
+      // المستخدم الموجود هو من يُرسل الـ offer للداخل الجديد
+      setTimeout(() => createAndSendOffer(participant.socketId), 800);
     };
 
     const onUserLeft = ({ socketId }) => {
       setParticipants(prev => prev.filter(p => p.socketId !== socketId));
       setRemoteStreams(prev => { const m = new Map(prev); m.delete(socketId); return m; });
+      remoteStreamsRef.current.delete(socketId);
       if (peersRef.current.has(socketId)) {
         peersRef.current.get(socketId).close();
         peersRef.current.delete(socketId);
@@ -439,11 +422,8 @@ const VideoInterview = () => {
     const onOffer = ({ offer, senderSocketId }) => handleIncomingOffer(offer, senderSocketId);
     const onAnswer = ({ answer, senderSocketId }) => handleIncomingAnswer(answer, senderSocketId);
     const onIceCandidate = ({ candidate, senderSocketId }) => handleIncomingCandidate(candidate, senderSocketId);
-
     const onChatMessage = (msg) => {
-      if (msg.userId !== myId) { // لم أرسله أنا
-        setChatMessages(prev => [...prev, msg]);
-      }
+      if (msg.userId !== myId) setChatMessages(prev => [...prev, msg]);
     };
 
     socket.on('room-state', onRoomState);
@@ -463,7 +443,8 @@ const VideoInterview = () => {
       socket.off('ice-candidate', onIceCandidate);
       socket.off('chat-message', onChatMessage);
     };
-  }, [socket, isSetupComplete, roomId, myId, user, createAndSendOffer, handleIncomingOffer, handleIncomingAnswer, handleIncomingCandidate]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [socket, isSetupComplete, roomId]);
 
   // =====================================================
   // التحكم في الكاميرا والميكروفون
