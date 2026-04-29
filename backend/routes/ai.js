@@ -51,7 +51,7 @@ router.get('/recommendations', protect, async (req, res) => {
       }
     });
 
-    res.status(200).json({ success: true, count: result.result.length, data: result });
+    res.status(200).json({ success: true, count: result.result?.length || 0, data: result.result, _ai_metrics: { layer_used: result.layer_used, cached: result.cached, execution_time_ms: result.execution_time_ms, confidence: result.confidence, traceId: result.traceId } });
   } catch (error) {
     res.status(500).json({ success: false, message: `??? ?? ?????? (${error.message})` });
   }
@@ -97,7 +97,7 @@ router.post('/smart-search', protect, async (req, res) => {
       }
     });
 
-    res.status(200).json({ success: true, count: result.result.length, data: result });
+    res.status(200).json({ success: true, count: result.result?.length || 0, data: result.result, _ai_metrics: { layer_used: result.layer_used, cached: result.cached, execution_time_ms: result.execution_time_ms, confidence: result.confidence, traceId: result.traceId } });
   } catch (error) {
     res.status(500).json({ success: false, message: `??? ?? ?????? (${error.message})` });
   }
@@ -133,7 +133,7 @@ router.post('/improve-job-requirements', protect, async (req, res) => {
       }
     });
 
-    res.status(200).json({ success: true, data: result });
+    res.status(200).json({ success: true, data: result.result, _ai_metrics: { layer_used: result.layer_used, cached: result.cached, execution_time_ms: result.execution_time_ms, confidence: result.confidence, traceId: result.traceId } });
   } catch (error) {
     res.status(500).json({ success: false, message: `??? ?? ?????? (${error.message})` });
   }
@@ -184,7 +184,7 @@ router.post('/analyze-resume', protect, async (req, res) => {
       }
     });
 
-    res.status(200).json({ success: true, data: result });
+    res.status(200).json({ success: true, data: result.result, _ai_metrics: { layer_used: result.layer_used, cached: result.cached, execution_time_ms: result.execution_time_ms, confidence: result.confidence, traceId: result.traceId } });
   } catch (error) {
     res.status(500).json({ success: false, message: `??? ?? ?????? (${error.message})` });
   }
@@ -211,7 +211,7 @@ router.post('/generate-job-description', protect, async (req, res) => {
       }
     });
 
-    res.status(200).json({ success: true, data: result });
+    res.status(200).json({ success: true, data: result.result, _ai_metrics: { layer_used: result.layer_used, cached: result.cached, execution_time_ms: result.execution_time_ms, confidence: result.confidence, traceId: result.traceId } });
   } catch (error) {
     res.status(500).json({ success: false, message: `??? ?? ?????? (${error.message})` });
   }
@@ -237,7 +237,7 @@ router.post('/analyze-interview', protect, async (req, res) => {
       }
     });
 
-    res.status(200).json({ success: true, data: result });
+    res.status(200).json({ success: true, data: result.result, _ai_metrics: { layer_used: result.layer_used, cached: result.cached, execution_time_ms: result.execution_time_ms, confidence: result.confidence, traceId: result.traceId } });
   } catch (error) {
     res.status(500).json({ success: false, message: `??? ?? ?????? (${error.message})` });
   }
@@ -258,7 +258,7 @@ router.get('/market-analysis', protect, async (req, res) => {
       }
     });
 
-    res.status(200).json({ success: true, data: result });
+    res.status(200).json({ success: true, data: result.result, _ai_metrics: { layer_used: result.layer_used, cached: result.cached, execution_time_ms: result.execution_time_ms, confidence: result.confidence, traceId: result.traceId } });
   } catch (error) {
     res.status(500).json({ success: false, message: `??? ?? ?????? (${error.message})` });
   }

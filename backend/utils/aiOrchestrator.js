@@ -53,6 +53,7 @@ class AIOrchestrator {
           layer_used: 'REDIS_CACHE',
           cached: true,
           execution_time_ms: latency,
+          confidence: 0.99, // Cached results are high confidence
           traceId
         };
       }
@@ -90,8 +91,14 @@ class AIOrchestrator {
           chosenLayer = 'LOCAL_AI_FALLBACK';
           reason = 'Unknown task type, defaulting to safe Local AI';
           finalResult = await localAIFunction(payload);
+        } else if (geminiFunction) {
+          chosenLayer = 'GEMINI_AI_FALLBACK';
+          reason = 'Unknown task type, defaulting to Gemini AI';
+          finalResult = await geminiFunction(payload);
         } else {
-          throw new Error('No appropriate AI processor available for this task type');
+          chosenLayer = 'SYSTEM_FALLBACK';
+          reason = 'No AI function provided, returning empty fallback';
+          finalResult = { fallback: true, message: 'لا يمكن معالجة الطلب حالياً' };
         }
       }
 
@@ -127,6 +134,7 @@ class AIOrchestrator {
         layer_used: chosenLayer,
         cached: false,
         execution_time_ms: latency,
+        confidence: finalResult?.confidence || finalResult?.score ? (finalResult.score / 100).toFixed(2) : 0.95,
         traceId
       };
 

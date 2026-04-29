@@ -62,11 +62,7 @@ router.post('/chat', protect, async (req, res) => {
     // Unified Enterprise Response Format
     res.status(200).json({
       success: true,
-      data: {
-        result: result,
-        layer_used: 'GEMINI_AI',
-        executed_via: 'AI_ORCHESTRATOR'
-      }
+      data: { response: result.result, usedAI: true, layer_used: result.layer_used, cached: result.cached, execution_time_ms: result.execution_time_ms, confidence: result.confidence, traceId: result.traceId }
     });
 
   } catch (error) {
