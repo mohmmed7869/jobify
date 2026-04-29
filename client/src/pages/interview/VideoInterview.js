@@ -254,12 +254,12 @@ const VideoInterview = () => {
         return null;
       }
 
-      // طلب الكاميرا: محاولة الإعدادات المحسنة للإنترنت الضعيف أولاً
+      // طلب الكاميرا: محاولة 1 (إعدادات محسنة)
       let stream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
-            facingMode: "user", // تشغيل الكاميرا الأمامية للهواتف
+            facingMode: { ideal: "user" },
             width: { ideal: 640 },
             height: { ideal: 480 },
             frameRate: { ideal: 15 }
@@ -270,27 +270,42 @@ const VideoInterview = () => {
             autoGainControl: true
           }
         });
-      } catch (advancedErr) {
-        console.warn('Advanced constraints failed (common on Android), falling back to basic:', advancedErr);
-        // المحاولة الثانية: إعدادات أساسية جداً لضمان عملها على أي جهاز (خاصة أندرويد)
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user" },
-          audio: true
-        });
+        console.log('✅ Camera opened (advanced constraints)');
+      } catch (err1) {
+        console.warn('⚠️ Attempt 1 failed:', err1.name, err1.message, '- trying basic...');
+        try {
+          // محاولة 2: بدون تحديد الدقة
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true
+          });
+          console.log('✅ Camera opened (basic constraints)');
+        } catch (err2) {
+          console.error('❌ Attempt 2 failed:', err2.name, err2.message);
+          // إظهار الخطأ الحقيقي للمستخدم
+          if (err2.name === 'NotAllowedError' || err2.name === 'PermissionDeniedError') {
+            toast.error('❌ رُفض إذن الكاميرا - افتح إعدادات المتصفح وامنح الإذن لهذا الموقع');
+          } else if (err2.name === 'NotFoundError' || err2.name === 'DevicesNotFoundError') {
+            toast.error('❌ لم يتم العثور على كاميرا في هذا الجهاز');
+          } else if (err2.name === 'NotReadableError' || err2.name === 'TrackStartError') {
+            toast.error('❌ الكاميرا مستخدمة من تطبيق آخر، أغلق التطبيقات الأخرى وحاول مجدداً');
+          } else if (err2.name === 'OverconstrainedError') {
+            toast.error('❌ كاميرا الجهاز لا تدعم الإعدادات المطلوبة');
+          } else if (!window.isSecureContext) {
+            toast.error('❌ يجب استخدام HTTPS لتشغيل الكاميرا في المتصفح - تأكد من أن الرابط يبدأ بـ https://');
+          } else {
+            toast.error(`❌ خطأ في الكاميرا: ${err2.name} - ${err2.message}`);
+          }
+          return null;
+        }
       }
-      
+
       localStreamRef.current = stream;
       setLocalStream(stream);
       return stream;
     } catch (err) {
-      console.error('Media error:', err);
-      if (err.name === 'NotAllowedError') {
-        toast.error('❌ تم رفض إذن الوصول للكاميرا والميكروفون');
-      } else if (err.name === 'NotFoundError') {
-        toast.error('❌ لم يتم العثور على كاميرا أو ميكروفون في جهازك');
-      } else {
-        toast.error('❌ حدث خطأ غير متوقع أثناء تشغيل الكاميرا');
-      }
+      console.error('Unexpected camera error:', err);
+      toast.error(`❌ خطأ غير متوقع: ${err.name}`);
       return null;
     }
   }, []);
