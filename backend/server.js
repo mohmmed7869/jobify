@@ -163,7 +163,12 @@ if (cluster.isMaster && process.env.NODE_ENV === 'production' && false) {
     cors: {
       origin: "*",
       methods: ["GET", "POST"]
-    }
+    },
+    // إعدادات مخصصة لـ Render Free Tier لمنع انقطاع WebSocket
+    pingTimeout: 60000,
+    pingInterval: 25000,
+    upgradeTimeout: 30000,
+    transports: ['websocket', 'polling'] // websocket أولاً للجوال و polling ك**fallback**
   });
 
   app.set('io', io);

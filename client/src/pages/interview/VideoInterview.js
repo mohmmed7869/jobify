@@ -342,7 +342,13 @@ const VideoInterview = () => {
     }
 
     // نستخدم iceServersRef (ثابت) بدل iceServers (state)
-    const pc = new RTCPeerConnection({ iceServers: iceServersRef.current });
+    const pc = new RTCPeerConnection({
+      iceServers: iceServersRef.current,
+      bundlePolicy: 'max-bundle',       // تقليل المنافذ المطلوبة (مهم للأندرويد)
+      rtcpMuxPolicy: 'require',         // تشغيل الصوت والفيديو على نفس المنفذ
+      iceCandidatePoolSize: 10,         // تسريع جمع ICE candidates
+      iceTransportPolicy: 'all',        // استخدام كل المسارات (STUN + TURN)
+    });
 
     pc.onicecandidate = ({ candidate }) => {
       if (candidate && socketRef.current) {
