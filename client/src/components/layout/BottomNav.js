@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { FiHome, FiBriefcase, FiFileText, FiUser } from 'react-icons/fi';
+import { FiHome, FiBriefcase, FiFileText, FiUser, FiUsers } from 'react-icons/fi';
 
 const BottomNav = () => {
   const { user } = useAuth();
@@ -15,7 +15,7 @@ const BottomNav = () => {
   const jobseekerLinks = [
     { to: '/dashboard', icon: <FiHome size={20} />, label: 'الرئيسية' },
     { to: '/jobs', icon: <FiBriefcase size={20} />, label: 'الوظائف' },
-    { to: '/ai-coach', icon: <span className="text-xl leading-none">✨</span>, label: 'المساعد' },
+    { to: '/social', icon: <FiUsers size={20} />, label: 'المجتمع' },
     { to: '/resume-builder', icon: <FiFileText size={20} />, label: 'السيرة' },
     { to: '/profile', icon: <FiUser size={20} />, label: 'الحساب' },
   ];
