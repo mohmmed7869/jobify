@@ -4,35 +4,42 @@ const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 
 /**
- * AI Router & Orchestrator
- * This is the central brain that decides WHEN to use Local AI, WHEN to use Gemini,
- * and WHEN to use Cache. It strictly enforces the Enterprise boundary:
- * Scoring = Local Math Only. Reasoning = Gemini Only.
+ * Enterprise AI Intent Classifier
  */
+const IntentClassifier = (taskName) => {
+  const task = taskName.toUpperCase();
+  
+  if (task.includes('MATCHING') || task.includes('SCORING') || task.includes('EVALUATION')) {
+    return 'MUST_LOCAL';
+  }
+  
+  if (task.includes('GENERATION') || task.includes('WRITING') || task.includes('DESC') || task.includes('IMPROVE')) {
+    return 'GENERATION_TASKS';
+  }
+  
+  if (task.includes('REASONING') || task.includes('CHAT') || task.includes('INTERVIEW_Q')) {
+    return 'PREFERRED_GEMINI';
+  }
+  
+  if (task.includes('HYBRID')) {
+    return 'HYBRID';
+  }
+
+  return 'UNKNOWN';
+};
+
 class AIOrchestrator {
   
-  /**
-   * Generates a unique cache key based on the task and input payload
-   */
   _generateCacheKey(taskName, payload) {
     const hash = crypto.createHash('md5').update(JSON.stringify(payload)).digest('hex');
     return `AI_CACHE:${taskName}:${hash}`;
   }
 
-  /**
-   * Main Router Method
-   * @param {string} taskName - Name of the task (e.g., 'CV_MATCHING', 'INTERVIEW_QUESTIONS')
-   * @param {object} payload - The input data for the task
-   * @param {function} localAIFunction - Callback for Local AI processing (Math/Scoring)
-   * @param {function} geminiFunction - Callback for Gemini AI processing (Reasoning/Chat)
-   * @param {boolean} useCache - Whether to check/set cache for this request
-   */
   async routeRequest({ taskName, payload, localAIFunction, geminiFunction, useCache = true }) {
     const startTime = Date.now();
     const traceId = uuidv4();
     let cacheKey = null;
     
-    // 1. Check Cache Layer (If enabled for this task)
     if (useCache) {
       cacheKey = this._generateCacheKey(taskName, payload);
       const cachedResult = await getCache(cacheKey);
@@ -40,21 +47,15 @@ class AIOrchestrator {
       if (cachedResult) {
         const latency = Date.now() - startTime;
         logAITrace({
-          traceId,
-          timestamp: new Date().toISOString(),
+          traceId, timestamp: new Date().toISOString(),
           input_preview: JSON.stringify(payload).substring(0, 100),
-          task: taskName,
-          chosen_layer: 'REDIS_CACHE',
+          task: taskName, chosen_layer: 'REDIS_CACHE',
           reason: 'Cache hit for identical previous request',
           latency_ms: latency
         });
         return {
-          result: cachedResult,
-          layer_used: 'REDIS_CACHE',
-          cached: true,
-          execution_time_ms: latency,
-          confidence: 0.99, // Cached results are high confidence
-          traceId
+          result: cachedResult, layer_used: 'REDIS_CACHE', cached: true,
+          execution_time_ms: latency, confidence: 0.99, traceId
         };
       }
     }
@@ -62,79 +63,87 @@ class AIOrchestrator {
     let finalResult = null;
     let chosenLayer = 'UNKNOWN';
     let reason = 'UNKNOWN';
+    
+    const intent = IntentClassifier(taskName);
 
     try {
-      // 2. Strict Boundary Enforcement
-      if (taskName.includes('MATCHING') || taskName.includes('SCORING') || taskName.includes('EVALUATION')) {
-        // SCORING -> STRICTLY LOCAL AI
-        if (!localAIFunction) {
-          throw new Error('Local AI Function must be provided for SCORING tasks to avoid Gemini hallucination and cost.');
-        }
-        
+      if (intent === 'MUST_LOCAL') {
+        if (!localAIFunction) throw new Error('Local AI required for SCORING but not provided');
         chosenLayer = 'LOCAL_AI';
-        reason = 'Task involves scoring or math, strict local processing required';
+        reason = 'Task involves scoring/math, strictly routed to Local AI';
         finalResult = await localAIFunction(payload);
 
-      } else if (taskName.includes('REASONING') || taskName.includes('CHAT') || taskName.includes('GENERATION')) {
-        // REASONING -> GEMINI ALLOWED
-        if (!geminiFunction) {
-          throw new Error('Gemini Function must be provided for GENERATION/REASONING tasks.');
-        }
-
+      } else if (intent === 'GENERATION_TASKS') {
+        if (!geminiFunction) throw new Error('Gemini function required for GENERATION but not provided');
         chosenLayer = 'GEMINI_AI';
-        reason = 'Task involves text generation or reasoning, passing to Google Gemini';
+        reason = 'Task involves content generation, routed to Gemini';
         finalResult = await geminiFunction(payload);
 
+      } else if (intent === 'PREFERRED_GEMINI') {
+        if (geminiFunction) {
+          chosenLayer = 'GEMINI_AI';
+          reason = 'Task prefers reasoning, routed to Gemini';
+          finalResult = await geminiFunction(payload);
+        } else if (localAIFunction) {
+          chosenLayer = 'LOCAL_AI_FALLBACK';
+          reason = 'Gemini preferred but unavailable, using Local Fallback';
+          finalResult = await localAIFunction(payload);
+        }
+
+      } else if (intent === 'HYBRID') {
+        chosenLayer = 'HYBRID_AI';
+        reason = 'Task uses both Local and Gemini AI';
+        // In hybrid mode, try both or combine. Here we assume geminiFunction handles the hybrid logic internally, or we try gemini first.
+        if (geminiFunction) {
+          finalResult = await geminiFunction(payload);
+        } else if (localAIFunction) {
+          finalResult = await localAIFunction(payload);
+        }
+
       } else {
-        // Fallback for unknown tasks (try local, then fallback)
+        // Unknown Intent Fallback
         if (localAIFunction) {
           chosenLayer = 'LOCAL_AI_FALLBACK';
-          reason = 'Unknown task type, defaulting to safe Local AI';
+          reason = 'Unknown intent, defaulting to Local AI';
           finalResult = await localAIFunction(payload);
         } else if (geminiFunction) {
           chosenLayer = 'GEMINI_AI_FALLBACK';
-          reason = 'Unknown task type, defaulting to Gemini AI';
+          reason = 'Unknown intent, defaulting to Gemini AI';
           finalResult = await geminiFunction(payload);
         } else {
           chosenLayer = 'SYSTEM_FALLBACK';
-          reason = 'No AI function provided, returning empty fallback';
-          finalResult = { fallback: true, message: 'لا يمكن معالجة الطلب حالياً' };
+          reason = 'No AI functions provided';
+          finalResult = { fallback: true, message: '?? ???? ?????? ????? ??????' };
         }
       }
 
-      // 3. Save to Cache
-      if (useCache && cacheKey && finalResult) {
-        // Store for 24 hours (86400 seconds) by default
+      // Safety check: Never return undefined
+      if (finalResult === undefined || finalResult === null) {
+        throw new Error('AI Layer returned null or undefined');
+      }
+
+      if (useCache && cacheKey && !finalResult.fallback) {
         await setCache(cacheKey, finalResult, 86400);
       }
 
       const latency = Date.now() - startTime;
       
-      // 4. Log AI Decision Trace (Observability)
       const tracePayload = {
-        traceId,
-        timestamp: new Date().toISOString(),
+        traceId, timestamp: new Date().toISOString(),
         input_preview: JSON.stringify(payload).substring(0, 100),
-        task: taskName,
-        chosen_layer: chosenLayer,
-        reason: reason,
-        latency_ms: latency,
-        status: 'SUCCESS'
+        task: taskName, chosen_layer: chosenLayer,
+        reason: reason, latency_ms: latency, status: 'SUCCESS'
       };
       
       logAITrace(tracePayload);
-
-      // AI Debug Mode
-      if (process.env.AI_DEBUG === 'true') {
-        aiLogger.debug(`[AI_DEBUG] Trace: ${JSON.stringify(tracePayload)}`);
-      }
+      if (process.env.AI_DEBUG === 'true') aiLogger.debug(`[AI_DEBUG] Trace: ${JSON.stringify(tracePayload)}`);
 
       return {
         result: finalResult,
         layer_used: chosenLayer,
         cached: false,
         execution_time_ms: latency,
-        confidence: finalResult?.confidence || finalResult?.score ? (finalResult.score / 100).toFixed(2) : 0.95,
+        confidence: finalResult.confidence || finalResult.score ? (finalResult.score / 100).toFixed(2) : 0.95,
         traceId
       };
 
@@ -143,17 +152,21 @@ class AIOrchestrator {
       aiLogger.error(`AI Orchestrator Error in task ${taskName} [${traceId}]: ${error.message}`);
       
       logAITrace({
-        traceId,
-        timestamp: new Date().toISOString(),
+        traceId, timestamp: new Date().toISOString(),
         input_preview: JSON.stringify(payload).substring(0, 100),
-        task: taskName,
-        chosen_layer: chosenLayer,
-        reason: `FAILED: ${error.message}`,
-        latency_ms: latency,
-        status: 'ERROR'
+        task: taskName, chosen_layer: chosenLayer,
+        reason: `FAILED: ${error.message}`, latency_ms: latency, status: 'ERROR'
       });
 
-      throw error;
+      // Failsafe return
+      return {
+        result: { fallback: true, message: '??? ??? ????? ?? ???? ?????? ?????????' },
+        layer_used: 'SYSTEM_ERROR_FALLBACK',
+        cached: false,
+        execution_time_ms: latency,
+        confidence: 0,
+        traceId
+      };
     }
   }
 }
