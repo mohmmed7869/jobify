@@ -61,11 +61,12 @@ const RemoteVideo = ({ stream, name, isOnline }) => {
         autoPlay
         playsInline
         className="w-full h-full object-cover"
+        onLoadedMetadata={() => videoRef.current?.play().catch(e => console.warn('Autoplay blocked:', e))}
       />
       {!stream && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-600">
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-600 bg-slate-900">
           <FaVideoSlash size={40} className="mb-2" />
-          <p className="text-xs font-bold">بدون فيديو</p>
+          <p className="text-xs font-bold">جاري الاتصال...</p>
         </div>
       )}
       <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur px-3 py-1.5 rounded-xl text-white text-xs font-bold flex items-center gap-2">
@@ -206,17 +207,30 @@ const VideoInterview = () => {
   // ===== جلب الكاميرا والميكروفون =====
   const startLocalStream = useCallback(async () => {
     try {
+      // فحص إذا كان المتصفح لا يدعم mediaDevices (غالباً بسبب HTTP بدل HTTPS)
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast.error('⚠️ المتصفح لا يدعم الوصول للكاميرا، تأكد من استخدام HTTPS أو متصفح حديث.');
+        console.error('navigator.mediaDevices is undefined');
+        return null;
+      }
+
+      // طلب الكاميرا بإعدادات بسيطة لضمان التوافق مع جميع الأجهزة
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: { echoCancellation: true, noiseSuppression: true }
+        video: true, // إلغاء دقة 720p الإجبارية لتفادي أخطاء الأجهزة القديمة
+        audio: true
       });
       localStreamRef.current = stream;
       setLocalStream(stream);
       return stream;
     } catch (err) {
       console.error('Media error:', err);
-      if (err.name === 'NotAllowedError') toast.error('يرجى السماح بالوصول للكاميرا والميكروفون');
-      else toast.error('تعذر الوصول للكاميرا أو الميكروفون');
+      if (err.name === 'NotAllowedError') {
+        toast.error('❌ تم رفض إذن الوصول للكاميرا والميكروفون');
+      } else if (err.name === 'NotFoundError') {
+        toast.error('❌ لم يتم العثور على كاميرا أو ميكروفون في جهازك');
+      } else {
+        toast.error('❌ حدث خطأ غير متوقع أثناء تشغيل الكاميرا');
+      }
       return null;
     }
   }, []);
