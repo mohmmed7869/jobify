@@ -101,7 +101,25 @@ const EmployerProfile = () => {
       });
       
       if (res.data.success) {
-        setFormData(prev => ({ ...prev, companyDescription: res.data.data.description }));
+        let aiDescription = res.data.data.description || '';
+        
+        // Post-processing: Remove conversational filler and quotes
+        const unwantedPhrases = [
+          /إليك وصف الشركة[:\s]*/g,
+          /وصف الشركة[:\s]*/g,
+          /بالتأكيد، تفضل الوصف[:\s]*/g,
+          /هذا هو الوصف المقترح[:\s]*/g,
+          /^"|"$/g
+        ];
+        
+        unwantedPhrases.forEach(regex => {
+          aiDescription = aiDescription.replace(regex, '');
+        });
+
+        // Ensure single paragraph and clean Markdown
+        aiDescription = aiDescription.replace(/```(json)?/g, '').replace(/\n+/g, ' ').trim();
+
+        setFormData(prev => ({ ...prev, companyDescription: aiDescription }));
         toast.success('تم إنشاء وصف الشركة بنجاح');
       }
     } catch (err) {

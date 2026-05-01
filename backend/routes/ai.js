@@ -204,10 +204,31 @@ router.post('/generate-job-description', protect, async (req, res) => {
       geminiFunction: async () => {
         const isCompanyDesc = jobTitle === 'وصف الشركة' || jobTitle === 'بروفايل الشركة';
         const prompt = isCompanyDesc
-          ? `أنشئ وصفاً احترافياً لشركة:\nاسم الشركة: ${companyInfo}\nالمجال: ${industry}\nاشمل: نبذة، رؤية، بيئة العمل.`
-          : `أنشئ وصف وظيفة:\nالوظيفة: ${jobTitle}\nالصناعة: ${industry}\nالمهارات: ${keySkills}\nالشركة: ${companyInfo}\nاشمل: مقدمة، مسؤوليات، متطلبات، مزايا.`;
+          ? `Generate ONLY a professional and concise company description in Arabic language.
+
+Rules:
+- Do NOT add explanations
+- Do NOT add titles
+- Do NOT say "Here is the description" or "إليك الوصف"
+- Do NOT use bullet points
+- Output must be a single paragraph only
+
+Content:
+- Company Name: ${companyInfo}
+- Industry: ${industry}
+- Include: Vision, mission, and work culture.
+
+Output:
+Only the description text.`
+          : `أنشئ وصف وظيفة احترافي باللغة العربية:
+الوظيفة: ${jobTitle}
+الصناعة: ${industry}
+المهارات المطلوبة: ${keySkills}
+الشركة: ${companyInfo}
+اشمل: مقدمة، مسؤوليات رئيسية، متطلبات، ومزايا العمل.`;
+        
         const text = await generateReasoning(prompt);
-        return { description: text, suggestions: ['راجع الوصف وخصصه', 'أضف الراتب'] };
+        return { description: text, suggestions: ['راجع الوصف وخصصه حسب هوية الشركة', 'تأكد من ذكر المزايا التنافسية'] };
       }
     });
 

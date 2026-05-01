@@ -938,11 +938,17 @@ router.post('/resume/export-pdf', protect, authorize('jobseeker', 'individual'),
       args: [
         '--no-sandbox', 
         '--disable-setuid-sandbox',
-        '--font-render-hinting=none'
+        '--font-render-hinting=none',
+        '--force-color-profile=srgb',
+        '--disable-web-security'
       ]
     });
     
     const page = await browser.newPage();
+    
+    // Set viewport for better rendering
+    await page.setViewport({ width: 1200, height: 1600 });
+
     const fullHtml = `
       <!DOCTYPE html>
       <html dir="rtl" lang="ar">
@@ -950,6 +956,17 @@ router.post('/resume/export-pdf', protect, authorize('jobseeker', 'individual'),
         <meta charset="UTF-8">
         <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
         <style>
+          @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap');
+          
+          :root {
+            --primary-500: #06b6d4;
+            --primary-600: #0891b2;
+            --primary-700: #0e7490;
+            --emerald-500: #10b981;
+            --emerald-600: #059669;
+            --slate-900: #0f172a;
+          }
+
           body { 
             font-family: 'Cairo', sans-serif !important; 
             background: #fff; 
@@ -957,13 +974,54 @@ router.post('/resume/export-pdf', protect, authorize('jobseeker', 'individual'),
             margin: 0; 
             padding: 0; 
             -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
-          .no-print { display: none !important; }
-          .resume-paper { width: 100% !important; box-shadow: none !important; border: none !important; }
-          /* Preserve Tailwind-like classes if used in htmlContent */
-          .text-emerald-600 { color: #059669 !important; }
-          .text-slate-900 { color: #0f172a !important; }
+          
+          .resume-paper { 
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            padding: 40px;
+            background: #fff;
+            box-sizing: border-box;
+          }
+
+          /* Tailwind compatibility shim */
+          .flex { display: flex; }
+          .flex-col { flex-direction: column; }
+          .grid { display: grid; }
+          .gap-2 { gap: 0.5rem; }
+          .gap-4 { gap: 1rem; }
+          .gap-8 { gap: 2rem; }
+          .items-center { align-items: center; }
+          .justify-center { justify-content: center; }
+          .text-center { text-align: center; }
+          .text-right { text-align: right; }
+          .w-full { width: 100%; }
+          .h-full { height: 100%; }
+          
+          .text-emerald-600 { color: var(--emerald-600) !important; }
+          .text-slate-900 { color: var(--slate-900) !important; }
+          .text-primary-600 { color: var(--primary-600) !important; }
+          .bg-emerald-600 { background-color: var(--emerald-600) !important; }
+          .bg-primary-600 { background-color: var(--primary-600) !important; }
+          
           .font-black { font-weight: 900 !important; }
+          .font-bold { font-weight: 700 !important; }
+          .text-4xl { font-size: 2.25rem; }
+          .text-2xl { font-size: 1.5rem; }
+          .text-xl { font-size: 1.25rem; }
+          .text-lg { font-size: 1.125rem; }
+          .text-xs { font-size: 0.75rem; }
+          
+          .uppercase { text-transform: uppercase; }
+          .tracking-widest { letter-spacing: 0.1em; }
+          .tracking-[0.4em] { letter-spacing: 0.4em; }
+          
+          .border-b-2 { border-bottom-width: 2px; }
+          .border-emerald-100 { border-color: #d1fae5; }
+          
+          .no-print { display: none !important; }
         </style>
       </head>
       <body>
@@ -974,12 +1032,15 @@ router.post('/resume/export-pdf', protect, authorize('jobseeker', 'individual'),
       </html>
     `;
     
-    await page.setContent(fullHtml, { waitUntil: 'networkidle2' });
+    await page.setContent(fullHtml, { waitUntil: 'networkidle2', timeout: 30000 });
+    // Wait for fonts to be ready
+    await page.evaluateHandle('document.fonts.ready');
     
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
-      margin: { top: '0.4in', right: '0.4in', bottom: '0.4in', left: '0.4in' }
+      margin: { top: '0', right: '0', bottom: '0', left: '0' },
+      preferCSSPageSize: true
     });
     
     await browser.close();

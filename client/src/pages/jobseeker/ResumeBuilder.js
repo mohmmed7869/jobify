@@ -309,21 +309,22 @@ Only the summary text.`;
   const handlePrint = async () => {
     // حفظ التغييرات أولاً لضمان أن الـ PDF يحتوي على أحدث البيانات
     await handleSave();
-    const loadingToast = toast.loading('جاري تجهيز ملف PDF احترافي عبر الخادم...');
+    const loadingToast = toast.loading('جاري إنشاء ملف PDF احترافي...');
     
     try {
       const element = document.querySelector('.resume-paper');
       if (!element) {
-        toast.error('تعذر العثور على السيرة الذاتية للتصدير', { id: loadingToast });
+        toast.error('تعذر العثور على محتوى السيرة الذاتية', { id: loadingToast });
         return;
       }
 
-      // محاولة التصدير عبر الخادم (Puppeteer) لضمان أعلى جودة وتوافق
+      // طلب التصدير حصراً عبر الخادم لضمان جودة الخطوط العربية والتنسيق
       const response = await axios.post('/api/users/resume/export-pdf', 
         { htmlContent: element.innerHTML },
         { responseType: 'blob' }
       );
 
+      // تحميل الملف الناتج مباشرة
       const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -334,37 +335,10 @@ Only the summary text.`;
       link.remove();
       window.URL.revokeObjectURL(url);
 
-      toast.success('تم تصدير السيرة الذاتية بنجاح عبر الخادم!', { id: loadingToast });
+      toast.success('تم تحميل السيرة الذاتية بنجاح!', { id: loadingToast });
     } catch (err) {
-      console.warn('Server-side PDF export failed, falling back to client-side:', err);
-      toast.loading('تنبيه: فشل التصدير عبر الخادم، جاري المحاولة عبر المتصفح...', { id: loadingToast });
-
-      // Fallback to html2pdf (client-side)
-      try {
-        const html2pdfModule = await import('html2pdf.js');
-        const html2pdf = html2pdfModule.default || html2pdfModule;
-        const element = document.querySelector('.resume-paper');
-        
-        const opt = {
-          margin:       [0.4, 0.4],
-          filename:     `resume_${user?.name?.replace(/\s+/g, '_') || 'jobify'}.pdf`,
-          image:        { type: 'jpeg', quality: 1.0 },
-          html2canvas:  { 
-            scale: 3, 
-            useCORS: true, 
-            logging: false,
-            letterRendering: true,
-            scrollY: -window.scrollY
-          },
-          jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
-        };
-        
-        await html2pdf().set(opt).from(element).save();
-        toast.success('تم التصدير بنجاح (نسخة احتياطية)!', { id: loadingToast });
-      } catch (clientErr) {
-        console.error('Client-side PDF fallback also failed:', clientErr);
-        toast.error('عذراً، فشلت جميع طرق التصدير. يرجى المحاولة لاحقاً', { id: loadingToast });
-      }
+      console.error('PDF Export Error:', err);
+      toast.error('عذراً، حدث خطأ أثناء إنشاء ملف PDF. يرجى المحاولة لاحقاً', { id: loadingToast });
     }
   };
 
@@ -427,12 +401,13 @@ Only the summary text.`;
               <FaSave className={loading ? 'animate-spin' : ''} /> <span>{loading ? 'جاري...' : 'حفظ'}</span>
             </motion.button>
             <motion.button 
-              whileHover={{ y: -2, scale: 1.02 }}
+              whileHover={{ y: -5, scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handlePrint} 
-              className="flex-1 md:flex-none btn-formal-primary shadow-glow px-4 md:px-10 py-2.5 md:py-4 text-[9px] md:text-xs font-black flex items-center justify-center gap-2 h-10 md:h-14"
+              className="flex-1 md:flex-none bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-glow-primary px-6 md:px-12 py-3 md:py-5 text-sm md:text-lg font-black flex items-center justify-center gap-3 h-12 md:h-16 rounded-2xl md:rounded-3xl hover:brightness-110 transition-all"
             >
-              <FaDownload /> <span>تصدير PDF</span>
+              <FaDownload className="text-xl md:text-2xl animate-bounce" /> 
+              <span>تحميل السيرة الذاتية (PDF)</span>
             </motion.button>
           </div>
         </div>
