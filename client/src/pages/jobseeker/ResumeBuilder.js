@@ -240,7 +240,9 @@ const ResumeBuilder = () => {
       if (experienceCount >= 4) expLevel = 'خبير (Senior)';
       else if (experienceCount >= 2) expLevel = 'متوسط الخبرة (Mid-level)';
         
-      const promptStr = `قم بإنشاء ملخص مهني احترافي (Summary) باللغة العربية لشخص بمستوى خبرة (${expLevel})، يستهدف وظيفة ${resumeData.personalInfo.jobTitle || 'متخصص'}، ويمتلك مهارات مثل: ${skillsList}. اجعله مخصصاً، يبرز القيمة المضافة، ويكون مختصراً وقوياً ومباشراً دون مقدمات زائدة.`;
+      const promptStr = `قم بإنشاء ملخص مهني احترافي (Summary) باللغة العربية لشخص بمستوى خبرة (${expLevel})، يستهدف وظيفة ${resumeData.personalInfo.jobTitle || 'متخصص'}، ويمتلك مهارات مثل: ${skillsList}. 
+
+هام: أرسل نص الملخص المهني مباشرة وبشكل مجرد. لا تضف أي مقدمات أو شروحات أو عبارات مثل "إليك الملخص" أو "بالتأكيد". أريد فقط النص الذي سيتم نسخه ولصقه في قسم الملخص بالكامل.`;
       
       const res = await axios.post('/api/assistant/chat', {
         message: promptStr,
@@ -249,8 +251,8 @@ const ResumeBuilder = () => {
 
       if (res.data.success) {
         let aiMessage = res.data.data.response || res.data.data.message || '';
-        // تنظيف النص من علامات Markdown أو النصوص الزائدة إن وجدت
-        aiMessage = aiMessage.replace(/```(json)?/g, '').trim();
+        // تنظيف النص من علامات Markdown أو النصوص الزائدة أو الاقتباسات
+        aiMessage = aiMessage.replace(/```(json)?/g, '').replace(/^"|"$/g, '').trim();
         
         setResumeData(prev => ({
           ...prev,
