@@ -917,8 +917,8 @@ router.delete('/:id', protect, async (req, res) => {
 
 // @desc    تصدير السيرة الذاتية بصيغة PDF (Server-side)
 // @route   POST /api/users/resume/export-pdf
-// @access  Private (Job Seekers only)
-router.post('/resume/export-pdf', protect, authorize('jobseeker', 'individual'), async (req, res) => {
+// @access  Private
+router.post('/resume/export-pdf', protect, async (req, res) => {
   try {
     const { htmlContent } = req.body;
     
@@ -935,13 +935,7 @@ router.post('/resume/export-pdf', protect, authorize('jobseeker', 'individual'),
 
     const browser = await puppeteer.launch({
       headless: 'new',
-      args: [
-        '--no-sandbox', 
-        '--disable-setuid-sandbox',
-        '--font-render-hinting=none',
-        '--force-color-profile=srgb',
-        '--disable-web-security'
-      ]
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
     
     const page = await browser.newPage();

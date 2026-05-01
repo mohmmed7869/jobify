@@ -319,10 +319,17 @@ Only the summary text.`;
       }
 
       // طلب التصدير حصراً عبر الخادم لضمان جودة الخطوط العربية والتنسيق
+      console.log('Sending PDF export request to backend...');
       const response = await axios.post('/api/users/resume/export-pdf', 
         { htmlContent: element.innerHTML },
         { responseType: 'blob' }
       );
+
+      console.log('PDF response received:', response.status, response.data.type);
+      
+      if (response.data.type !== 'application/pdf') {
+        throw new Error('الاستجابة المستلمة ليست ملف PDF صحيح');
+      }
 
       // تحميل الملف الناتج مباشرة
       const blob = new Blob([response.data], { type: 'application/pdf' });
