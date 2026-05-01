@@ -935,7 +935,11 @@ router.post('/resume/export-pdf', protect, authorize('jobseeker', 'individual'),
 
     const browser = await puppeteer.launch({
       headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      args: [
+        '--no-sandbox', 
+        '--disable-setuid-sandbox',
+        '--font-render-hinting=none'
+      ]
     });
     
     const page = await browser.newPage();
@@ -944,23 +948,38 @@ router.post('/resume/export-pdf', protect, authorize('jobseeker', 'individual'),
       <html dir="rtl" lang="ar">
       <head>
         <meta charset="UTF-8">
+        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
         <style>
-          body { font-family: sans-serif; background: #fff; color: #333; margin: 0; padding: 0; }
+          body { 
+            font-family: 'Cairo', sans-serif !important; 
+            background: #fff; 
+            color: #333; 
+            margin: 0; 
+            padding: 0; 
+            -webkit-print-color-adjust: exact;
+          }
           .no-print { display: none !important; }
+          .resume-paper { width: 100% !important; box-shadow: none !important; border: none !important; }
+          /* Preserve Tailwind-like classes if used in htmlContent */
+          .text-emerald-600 { color: #059669 !important; }
+          .text-slate-900 { color: #0f172a !important; }
+          .font-black { font-weight: 900 !important; }
         </style>
       </head>
       <body>
-        ${htmlContent}
+        <div class="resume-paper">
+          ${htmlContent}
+        </div>
       </body>
       </html>
     `;
     
-    await page.setContent(fullHtml, { waitUntil: 'networkidle0' });
+    await page.setContent(fullHtml, { waitUntil: 'networkidle2' });
     
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
-      margin: { top: '0.5in', right: '0.5in', bottom: '0.5in', left: '0.5in' }
+      margin: { top: '0.4in', right: '0.4in', bottom: '0.4in', left: '0.4in' }
     });
     
     await browser.close();

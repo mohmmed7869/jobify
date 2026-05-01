@@ -239,10 +239,34 @@ const ResumeBuilder = () => {
       let expLevel = 'مبتدئ (Junior)';
       if (experienceCount >= 4) expLevel = 'خبير (Senior)';
       else if (experienceCount >= 2) expLevel = 'متوسط الخبرة (Mid-level)';
-        
-      const promptStr = `قم بإنشاء ملخص مهني احترافي (Summary) باللغة العربية لشخص بمستوى خبرة (${expLevel})، يستهدف وظيفة ${resumeData.personalInfo.jobTitle || 'متخصص'}، ويمتلك مهارات مثل: ${skillsList}. 
 
-هام: أرسل نص الملخص المهني مباشرة وبشكل مجرد. لا تضف أي مقدمات أو شروحات أو عبارات مثل "إليك الملخص" أو "بالتأكيد". أريد فقط النص الذي سيتم نسخه ولصقه في قسم الملخص بالكامل.`;
+      if (!resumeData.skills?.length && !resumeData.experience?.length) {
+        toast.error('يرجى إضافة بعض المهارات أو الخبرات لتوليد الملخص', { id: loadingToast });
+        setLoading(false);
+        return;
+      }
+
+      const promptStr = `Generate ONLY a professional summary in Arabic language.
+
+Rules:
+- Do NOT add explanations
+- Do NOT add titles
+- Do NOT say "Here is your summary" or "إليك الملخص"
+- Do NOT use bullet points
+- Output must be a single paragraph only
+
+Content:
+- Based on user's skills: ${skillsList}
+- Based on user's experience: ${expLevel}
+- Target job role: ${resumeData.personalInfo.jobTitle || 'محترف'}
+
+Tone:
+- Professional
+- Concise
+- Strong
+
+Output:
+Only the summary text.`;
       
       const res = await axios.post('/api/assistant/chat', {
         message: promptStr,
@@ -251,8 +275,22 @@ const ResumeBuilder = () => {
 
       if (res.data.success) {
         let aiMessage = res.data.data.response || res.data.data.message || '';
-        // تنظيف النص من علامات Markdown أو النصوص الزائدة أو الاقتباسات
-        aiMessage = aiMessage.replace(/```(json)?/g, '').replace(/^"|"$/g, '').trim();
+        
+        // Post-processing: Remove conversational filler and quotes
+        const unwantedPhrases = [
+          /إليك الملخص المهني[:\s]*/g,
+          /الملخص المهني[:\s]*/g,
+          /بالتأكيد، تفضل الملخص[:\s]*/g,
+          /هذا هو الملخص المقترح[:\s]*/g,
+          /^"|"$/g
+        ];
+        
+        unwantedPhrases.forEach(regex => {
+          aiMessage = aiMessage.replace(regex, '');
+        });
+
+        // Ensure single paragraph and clean Markdown
+        aiMessage = aiMessage.replace(/```(json)?/g, '').replace(/\n+/g, ' ').trim();
         
         setResumeData(prev => ({
           ...prev,
@@ -308,11 +346,17 @@ const ResumeBuilder = () => {
         const element = document.querySelector('.resume-paper');
         
         const opt = {
-          margin:       [0.5, 0.5],
-          filename:     `resume_${user?.name?.replace(/\s+/g, '_') || 'jobify'}_fallback.pdf`,
-          image:        { type: 'jpeg', quality: 0.98 },
-          html2canvas:  { scale: 2, useCORS: true, logging: false },
-          jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+          margin:       [0.4, 0.4],
+          filename:     `resume_${user?.name?.replace(/\s+/g, '_') || 'jobify'}.pdf`,
+          image:        { type: 'jpeg', quality: 1.0 },
+          html2canvas:  { 
+            scale: 3, 
+            useCORS: true, 
+            logging: false,
+            letterRendering: true,
+            scrollY: -window.scrollY
+          },
+          jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
         };
         
         await html2pdf().set(opt).from(element).save();
@@ -1039,6 +1083,12 @@ const ResumeBuilder = () => {
       </div>
 
       <style dangerouslySetInnerHTML={{ __html: `
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap');
+        
+        .resume-paper {
+          font-family: 'Cairo', sans-serif !important;
+        }
+
         @media print {
           .no-print { display: none !important; }
           .mesh-bg { background: white !important; padding: 0 !important; }
@@ -1050,6 +1100,7 @@ const ResumeBuilder = () => {
             min-height: auto !important;
             border-radius: 0 !important;
             transform: none !important;
+            font-family: 'Cairo', sans-serif !important;
           }
           body { background: white !important; }
           nav, footer { display: none !important; }
