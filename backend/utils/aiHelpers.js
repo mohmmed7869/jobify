@@ -146,7 +146,7 @@ const analyzeResume = async (filePath) => {
 // حساب درجة المطابقة
 const calculateMatchingScore = async (job, applicantProfile, resumeAnalysis) => {
   try {
-    // محاولة استخدام خدمة Python للمطابقة المتقدمة
+    // 1. محاولة استخدام خدمة Python للمطابقة المتقدمة
     try {
       const pythonResponse = await axios.post(`${PYTHON_AI_SERVICE_URL}/job-matching`, {
         candidate: {
@@ -165,27 +165,53 @@ const calculateMatchingScore = async (job, applicantProfile, resumeAnalysis) => 
           skills_required: job.requirements?.skills || [],
           experience_required: parseInt(job.requirements?.experience) || 0
         }
-      }, { timeout: 3000 }); // مهلة 3 ثوانٍ لتجنب الانتظار الطويل
+      }, { timeout: 3000 });
 
       if (pythonResponse.data) {
         return {
           matchingScore: Math.round(pythonResponse.data.match_score),
-          skillsMatch: {
-            score: Math.round(pythonResponse.data.skills_score)
-          },
-          experienceMatch: {
-            score: Math.round(pythonResponse.data.experience_score)
-          },
+          skillsMatch: { score: Math.round(pythonResponse.data.skills_score) },
+          experienceMatch: { score: Math.round(pythonResponse.data.experience_score) },
           semanticScore: Math.round(pythonResponse.data.semantic_score),
           reasons: pythonResponse.data.reasons,
           overallRecommendation: pythonResponse.data.match_score >= 80 ? 'موصى بشدة' : 
                                  pythonResponse.data.match_score >= 60 ? 'موصى' : 'مقبول'
         };
       }
-    } catch (pythonError) {
-      console.warn('⚠️ فشل الاتصال بخدمة Python AI للمطابقة، العودة للحساب المحلي:', pythonError.message);
+    } catch (e) {
+      console.warn('⚠️ Python Matching failed, trying Semantic AI (Gemini)...');
     }
 
+    // 2. المحاولة باستخدام Gemini للمطابقة الدلالية (Semantic Match)
+    let semanticMatchResult = null;
+    try {
+      const { generateReasoning } = require('./geminiClient');
+      const prompt = `أنت خبير توظيف تقني. قم بمطابقة المرشح التالي مع الوظيفة.
+      
+      الوظيفة: ${job.title}
+      متطلبات الوظيفة: ${job.requirements?.skills?.join(', ')}
+      وصف الوظيفة: ${job.description.substring(0, 500)}...
+      
+      المرشح:
+      المهارات: ${(applicantProfile.jobseekerProfile?.skills || []).join(', ')}
+      الخبرة: ${JSON.stringify(applicantProfile.jobseekerProfile?.experience || [])}
+      
+      أعطني النتيجة بتنسيق JSON حصراً كالتالي:
+      {
+        "score": 0-100,
+        "reasons": ["سبب 1", "سبب 2"],
+        "strengths": ["قوة 1"],
+        "weaknesses": ["نقص 1"]
+      }`;
+
+      const aiResponse = await generateReasoning(prompt);
+      const jsonStr = aiResponse.substring(aiResponse.indexOf('{'), aiResponse.lastIndexOf('}') + 1);
+      semanticMatchResult = JSON.parse(jsonStr);
+    } catch (geminiError) {
+      console.warn('⚠️ Gemini Matching failed, falling back to Rule-based matching.');
+    }
+
+    // 3. الحساب المحلي (Rule-based Fallback) مع دمج نتائج الـ AI إن وجدت
     const weights = job.aiSettings?.matchingScore || {
       skillsWeight: 0.4,
       experienceWeight: 0.3,
@@ -193,12 +219,7 @@ const calculateMatchingScore = async (job, applicantProfile, resumeAnalysis) => 
       locationWeight: 0.1
     };
     
-    let skillsScore = 0;
-    let experienceScore = 0;
-    let educationScore = 0;
-    let locationScore = 0;
-    
-    // حساب درجة المهارات
+    // حساب المهارات
     const requiredSkills = job.requirements?.skills || [];
     const candidateSkills = [
       ...(applicantProfile.jobseekerProfile?.skills || []),
@@ -206,107 +227,42 @@ const calculateMatchingScore = async (job, applicantProfile, resumeAnalysis) => 
     ];
     
     const matchedSkills = requiredSkills.filter(skill => 
-      candidateSkills.some(candidateSkill => 
-        candidateSkill.toLowerCase().includes(skill.toLowerCase()) ||
-        skill.toLowerCase().includes(candidateSkill.toLowerCase())
-      )
+      candidateSkills.some(cs => cs.toLowerCase().includes(skill.toLowerCase()) || skill.toLowerCase().includes(cs.toLowerCase()))
     );
     
-    const missingSkills = requiredSkills.filter(skill => !matchedSkills.includes(skill));
-    const additionalSkills = candidateSkills.filter(skill => !requiredSkills.includes(skill));
+    let skillsScore = requiredSkills.length > 0 ? (matchedSkills.length / requiredSkills.length) * 100 : 80;
     
-    skillsScore = requiredSkills.length > 0 ? (matchedSkills.length / requiredSkills.length) * 100 : 100;
-    
-    // حساب درجة الخبرة
-    const requiredExperience = parseInt(job.requirements?.experience) || 0;
-    const candidateExperience = applicantProfile.jobseekerProfile?.experience?.length || 0;
-    
-    if (candidateExperience >= requiredExperience) {
-      experienceScore = 100;
-    } else if (candidateExperience > 0) {
-      experienceScore = (candidateExperience / requiredExperience) * 100;
+    // حساب الخبرة
+    const reqExp = parseInt(job.requirements?.experience) || 0;
+    const candExp = applicantProfile.jobseekerProfile?.experience?.length || 0;
+    let experienceScore = candExp >= reqExp ? 100 : (candExp > 0 ? (candExp / reqExp) * 100 : 20);
+
+    // حساب الموقع
+    let locationScore = job.location?.remote ? 100 : 50;
+    if (applicantProfile.profile?.location?.city === job.location?.city) locationScore = 100;
+
+    // دمج نتيجة Gemini إذا كانت متاحة (تعطي وزناً أكبر للذكاء الاصطناعي)
+    let finalScore;
+    if (semanticMatchResult) {
+      // إذا نجح Gemini، نعتمد عليه بنسبة 70% وعلى الحساب الرياضي بنسبة 30%
+      finalScore = Math.round((semanticMatchResult.score * 0.7) + (((skillsScore + experienceScore) / 2) * 0.3));
     } else {
-      experienceScore = 0;
+      finalScore = Math.round((skillsScore * weights.skillsWeight) + (experienceScore * weights.experienceWeight) + (locationScore * (weights.locationWeight + weights.educationWeight)));
     }
-    
-    // حساب درجة التعليم
-    const requiredEducation = job.requirements?.education || '';
-    const candidateEducation = applicantProfile.jobseekerProfile?.education || [];
-    
-    if (candidateEducation.length > 0) {
-      educationScore = 80;
-    } else {
-      educationScore = 50;
-    }
-    
-    // حساب درجة الموقع
-    const jobLocation = job.location;
-    const candidateLocation = applicantProfile.profile?.location;
-    
-    if (jobLocation?.remote) {
-      locationScore = 100;
-    } else if (candidateLocation && jobLocation) {
-      if (candidateLocation.city === jobLocation.city) {
-        locationScore = 100;
-      } else if (candidateLocation.country === jobLocation.country) {
-        locationScore = 70;
-      } else {
-        locationScore = 30;
-      }
-    } else {
-      locationScore = 50;
-    }
-    
-    const matchingScore = Math.round(
-      (skillsScore * weights.skillsWeight) +
-      (experienceScore * weights.experienceWeight) +
-      (educationScore * weights.educationWeight) +
-      (locationScore * weights.locationWeight)
-    );
-    
-    let overallRecommendation = 'غير موصى';
-    if (matchingScore >= 90) overallRecommendation = 'موصى بشدة';
-    else if (matchingScore >= 75) overallRecommendation = 'موصى';
-    else if (matchingScore >= 60) overallRecommendation = 'مقبول';
-    
-    const strengths = [];
-    const weaknesses = [];
-    const suggestions = [];
-    
-    if (skillsScore >= 80) strengths.push('مهارات تقنية ممتازة');
-    else if (skillsScore < 50) {
-      weaknesses.push('نقص في المهارات المطلوبة');
-      suggestions.push('يُنصح بتطوير المهارات التقنية المطلوبة');
-    }
-    
+
     return {
-      matchingScore,
-      skillsMatch: {
-        matched: matchedSkills,
-        missing: missingSkills,
-        additional: additionalSkills,
-        score: Math.round(skillsScore)
-      },
-      experienceMatch: {
-        required: requiredExperience,
-        candidate: candidateExperience,
-        score: Math.round(experienceScore)
-      },
-      educationMatch: {
-        required: requiredEducation,
-        score: Math.round(educationScore)
-      },
-      locationMatch: {
-        score: Math.round(locationScore)
-      },
-      overallRecommendation,
-      strengths,
-      weaknesses,
-      suggestions
+      matchingScore: Math.min(finalScore, 100),
+      skillsMatch: { score: Math.round(skillsScore), matched: matchedSkills },
+      experienceMatch: { score: Math.round(experienceScore) },
+      semanticScore: semanticMatchResult?.score || 0,
+      reasons: semanticMatchResult?.reasons || ['مطابقة بناءً على المهارات والخبرة'],
+      strengths: semanticMatchResult?.strengths || [],
+      weaknesses: semanticMatchResult?.weaknesses || [],
+      overallRecommendation: finalScore >= 80 ? 'موصى بشدة' : (finalScore >= 60 ? 'موصى' : 'مقبول')
     };
   } catch (error) {
-    console.error('خطأ في حساب درجة المطابقة:', error);
-    throw error;
+    console.error('Matching Score Error:', error);
+    return { matchingScore: 50, overallRecommendation: 'مقبول', reasons: ['حدث خطأ أثناء الحساب الدقيق'] };
   }
 };
 
@@ -423,25 +379,62 @@ const intelligentJobSearch = async (query, user) => {
   }
 };
 
-// إنشاء توصيات وظائف شخصية
+// إنشاء توصيات وظائف شخصية (Advanced Scoring & Ranking)
 const generatePersonalizedRecommendations = async (userProfile, limit = 10) => {
   try {
     const Job = require('../models/Job');
     if (!userProfile.jobseekerProfile) return [];
     
     const profile = userProfile.jobseekerProfile;
-    const matchCriteria = [];
     
-    if (profile.skills?.length > 0) {
-      matchCriteria.push({ 'requirements.skills': { $in: profile.skills } });
+    // 1. جلب مجموعة أكبر من الوظائف النشطة التي قد تناسب المستخدم
+    // نبدأ بالوظائف التي تشترك في مهارة واحدة على الأقل
+    const initialJobs = await Job.find({ 
+      status: 'نشط',
+      $or: [
+        { 'requirements.skills': { $in: profile.skills || [] } },
+        { 'industry': userProfile.employerProfile?.industry || '' }, // إذا كان لديه اهتمام بمجال معين
+        { 'location.city': userProfile.profile?.location?.city || '' }
+      ]
+    })
+    .limit(50) // نجلب 50 وظيفة للمقارنة
+    .sort('-createdAt')
+    .populate('company', 'name employerProfile.companyLogo');
+
+    if (initialJobs.length === 0) {
+      // إذا لم نجد نتائج مطابقة، نجلب آخر الوظائف المنشورة كـ Fallback
+      return await Job.find({ status: 'نشط' }).limit(limit).sort('-createdAt').populate('company', 'name employerProfile.companyLogo');
     }
-    
-    const jobs = await Job.find({ status: 'نشط', $or: matchCriteria.length > 0 ? matchCriteria : [{}] })
-      .limit(limit)
-      .sort('-createdAt')
-      .populate('company', 'name employerProfile.companyLogo');
-    
-    return jobs;
+
+    // 2. حساب سكور سريع لكل وظيفة (بدون استدعاء AI ثقيل لجميع الـ 50 وظيفة)
+    const scoredJobs = initialJobs.map(job => {
+      let score = 0;
+      
+      // مهارات (40 نقطة)
+      const matchedSkills = (job.requirements?.skills || []).filter(s => 
+        (profile.skills || []).some(cs => cs.toLowerCase().includes(s.toLowerCase()))
+      );
+      score += (matchedSkills.length / Math.max(job.requirements?.skills?.length || 1, 1)) * 40;
+
+      // موقع (20 نقطة)
+      if (job.location?.remote) score += 20;
+      else if (job.location?.city === userProfile.profile?.location?.city) score += 20;
+
+      // مجال العمل (20 نقطة)
+      if (job.industry === userProfile.employerProfile?.industry) score += 20;
+
+      // حداثة الوظيفة (20 نقطة)
+      const daysOld = (Date.now() - new Date(job.createdAt)) / (1000 * 60 * 60 * 24);
+      score += Math.max(0, 20 - daysOld);
+
+      return { ...job.toObject(), matchingScore: Math.round(score) };
+    });
+
+    // 3. ترتيب النتائج حسب السكور وإرجاع الحد المطلوب
+    return scoredJobs
+      .sort((a, b) => b.matchingScore - a.matchingScore)
+      .slice(0, limit);
+
   } catch (error) {
     console.error('خطأ في إنشاء التوصيات الشخصية:', error);
     return [];
