@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SocketProvider } from './contexts/SocketContext';
 import { useTranslation } from 'react-i18next';
@@ -139,6 +140,7 @@ const LanguageEffect = () => {
 // Main App Component
 function App() {
   return (
+    <HelmetProvider>
     <AuthProvider>
       <Router>
         <SocketProvider>
@@ -477,6 +479,7 @@ function App() {
         </SocketProvider>
       </Router>
     </AuthProvider>
+    </HelmetProvider>
   );
 }
 

@@ -26,6 +26,12 @@ const notificationSchema = new mongoose.Schema({
   link: {
     type: String
   },
+  route: {
+    type: String
+  },
+  targetId: {
+    type: String
+  },
   read: {
     type: Boolean,
     default: false

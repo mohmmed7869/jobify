@@ -9,6 +9,8 @@ const Notification = require('../models/Notification');
  * @param {String} options.title - Notification title
  * @param {String} options.message - Notification message
  * @param {String} options.link - Link to redirect the user
+ * @param {String} options.route - Route to navigate to
+ * @param {String} options.targetId - Target ID
  * @param {Object} io - Socket.io instance (optional)
  */
 const sendNotification = async (options, io = null) => {
@@ -19,7 +21,9 @@ const sendNotification = async (options, io = null) => {
       type: options.type,
       title: options.title,
       message: options.message,
-      link: options.link
+      link: options.link,
+      route: options.route,
+      targetId: options.targetId
     });
 
     if (io) {

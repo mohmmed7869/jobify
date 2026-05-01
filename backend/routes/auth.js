@@ -8,9 +8,16 @@ const fs = require('fs');
 const User = require('../models/User');
 const SystemSettings = require('../models/SystemSettings');
 const { protect, rateLimit } = require('../middleware/auth');
+const expressRateLimit = require('express-rate-limit');
 const { sendEmail, sendOtpEmail } = require('../utils/sendEmail');
 
 const router = express.Router();
+
+const authLimiter = expressRateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Limit each IP to 10 requests per windowMs
+  message: { success: false, message: 'طلبات كثيرة جداً، يرجى المحاولة بعد 15 دقيقة' }
+});
 
 // إعداد Multer لرفع الصور أثناء التسجيل
 const storage = multer.diskStorage({
@@ -46,19 +53,30 @@ const upload = multer({
 });
 
 // إنشاء رمز JWT
-const signToken = (id) => {
+const signAccessToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE,
+    expiresIn: '15m', // Access token expires in 15 minutes
+  });
+};
+
+const signRefreshToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET, {
+    expiresIn: '7d', // Refresh token expires in 7 days
   });
 };
 
 // إرسال الرمز المميز مع الكوكيز
-const sendTokenResponse = (user, statusCode, res) => {
-  const token = signToken(user._id);
+const sendTokenResponse = async (user, statusCode, res) => {
+  const token = signAccessToken(user._id);
+  const refreshToken = signRefreshToken(user._id);
+  
+  // Save refresh token to user
+  user.refreshToken = refreshToken;
+  await user.save({ validateBeforeSave: false });
 
   const options = {
     expires: new Date(
-      Date.now() + process.env.JWT_COOKIE_EXPIRE * 24 * 60 * 60 * 1000
+      Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days
     ),
     httpOnly: true,
   };
@@ -67,9 +85,9 @@ const sendTokenResponse = (user, statusCode, res) => {
     options.secure = true;
   }
 
-  res.status(statusCode).cookie('token', token, options).json({
+  res.status(statusCode).cookie('refreshToken', refreshToken, options).json({
     success: true,
-    token,
+    token, // Return access token to be used in Authorization header
     data: {
       id: user._id,
       name: user.name,
@@ -237,7 +255,7 @@ router.post('/register', upload.fields([
 // @desc    تسجيل الدخول
 // @route   POST /api/auth/login
 // @access  Public
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     console.log(`Login attempt for: ${email}`);
@@ -304,14 +322,14 @@ router.post('/login', async (req, res) => {
             console.error('Email send failed at login, auto-activating account:', emailErr.message);
             await User.findByIdAndUpdate(user._id, { isVerified: true, isEmailVerified: true });
             await User.findByIdAndUpdate(user._id, { lastLogin: new Date() });
-            return sendTokenResponse(user, 200, res);
+            return await sendTokenResponse(user, 200, res);
           }
         } else {
           // لا يوجد إعداد للبريد - فعّل الحساب مباشرة
           await User.findByIdAndUpdate(user._id, { isVerified: true, isEmailVerified: true });
           await User.findByIdAndUpdate(user._id, { lastLogin: new Date() });
           user.isEmailVerified = true;
-          return sendTokenResponse(user, 200, res);
+          return await sendTokenResponse(user, 200, res);
         }
       } catch (e) { console.error('Error generating login OTP', e); }
 
@@ -327,7 +345,7 @@ router.post('/login', async (req, res) => {
     await User.findByIdAndUpdate(user._id, { lastLogin: new Date() });
 
     console.log(`Login SUCCESS: ${email} (${user.role}) - Generating token...`);
-    sendTokenResponse(user, 200, res);
+    await sendTokenResponse(user, 200, res);
   } catch (error) {
     console.error('Login Error:', error);
     res.status(500).json({
@@ -337,11 +355,48 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// @desc    تجديد الرمز المميز (Refresh Token)
+// @route   POST /api/auth/refresh
+// @access  Public
+router.post('/refresh', async (req, res) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+    
+    if (!refreshToken) {
+      return res.status(401).json({ success: false, message: 'لا يوجد رمز تجديد' });
+    }
+
+    // التحقق من صحة الرمز
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET);
+    
+    const user = await User.findById(decoded.id);
+    if (!user || user.refreshToken !== refreshToken) {
+      return res.status(401).json({ success: false, message: 'رمز تجديد غير صالح' });
+    }
+
+    // إصدار رمز جديد
+    await sendTokenResponse(user, 200, res);
+  } catch (error) {
+    console.error('Refresh Token Error:', error);
+    res.status(401).json({ success: false, message: 'انتهت صلاحية الجلسة، يرجى تسجيل الدخول مجدداً' });
+  }
+});
+
 // @desc    تسجيل الخروج
 // @route   POST /api/auth/logout
 // @access  Private
-router.post('/logout', (req, res) => {
+router.post('/logout', async (req, res) => {
+  // Clear refresh token in DB if user is known
+  if (req.user) {
+    await User.findByIdAndUpdate(req.user.id, { refreshToken: undefined });
+  }
+
   res.cookie('token', 'none', {
+    expires: new Date(Date.now() + 10 * 1000),
+    httpOnly: true,
+  });
+
+  res.cookie('refreshToken', 'none', {
     expires: new Date(Date.now() + 10 * 1000),
     httpOnly: true,
   });
@@ -418,7 +473,7 @@ router.put('/updatepassword', protect, async (req, res) => {
     user.password = req.body.newPassword;
     await user.save();
 
-    sendTokenResponse(user, 200, res);
+    await sendTokenResponse(user, 200, res);
   } catch (error) {
     console.error(error);
     res.status(500).json({
@@ -529,7 +584,7 @@ router.put('/resetpassword/:resettoken', async (req, res) => {
     user.resetPasswordExpire = undefined;
     await user.save();
 
-    sendTokenResponse(user, 200, res);
+    await sendTokenResponse(user, 200, res);
   } catch (error) {
     console.error(error);
     res.status(500).json({
@@ -577,7 +632,7 @@ router.get('/verify/:token', async (req, res) => {
 // @desc    التحقق من البريد الإلكتروني عبر رمز (OTP verification)
 // @route   POST /api/auth/verify-otp
 // @access  Public
-router.post('/verify-otp', async (req, res) => {
+router.post('/verify-otp', authLimiter, async (req, res) => {
   try {
     const { email, otp } = req.body;
     if (!email || !otp) {
@@ -608,7 +663,7 @@ router.post('/verify-otp', async (req, res) => {
     user.verificationToken = undefined;
     await user.save();
 
-    sendTokenResponse(user, 200, res);
+    await sendTokenResponse(user, 200, res);
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: 'حدث خطأ أثناء معالجة الطلب' });

@@ -231,19 +231,35 @@ const ResumeBuilder = () => {
     setLoading(true);
     const loadingToast = toast.loading('جاري صياغة ملخص مهني احترافي...');
     try {
-      const res = await axios.post('/api/ai/chat', {
-        message: `أنشئ ملخص مهني قصير واحترافي (Bio) باللغة العربية لشخص يعمل كـ ${resumeData.personalInfo.jobTitle || 'موظف'} ولديه مهارات مثل ${resumeData.skills.slice(0, 5).join(', ')}. اجعل النص جذاباً ومناسباً للسيرة الذاتية.`,
+      const skillsList = resumeData.skills && resumeData.skills.length > 0 
+        ? resumeData.skills.slice(0, 5).join(', ') 
+        : 'العمل الجماعي، التواصل الفعال، وحل المشكلات';
+
+      const experienceCount = resumeData.experience?.length || 0;
+      let expLevel = 'مبتدئ (Junior)';
+      if (experienceCount >= 4) expLevel = 'خبير (Senior)';
+      else if (experienceCount >= 2) expLevel = 'متوسط الخبرة (Mid-level)';
+        
+      const promptStr = `قم بإنشاء ملخص مهني احترافي (Summary) باللغة العربية لشخص بمستوى خبرة (${expLevel})، يستهدف وظيفة ${resumeData.personalInfo.jobTitle || 'متخصص'}، ويمتلك مهارات مثل: ${skillsList}. اجعله مخصصاً، يبرز القيمة المضافة، ويكون مختصراً وقوياً ومباشراً دون مقدمات زائدة.`;
+      
+      const res = await axios.post('/api/assistant/chat', {
+        message: promptStr,
         context: { type: 'resume_bio' }
       });
 
       if (res.data.success) {
+        let aiMessage = res.data.data.response || res.data.data.message || '';
+        // تنظيف النص من علامات Markdown أو النصوص الزائدة إن وجدت
+        aiMessage = aiMessage.replace(/```(json)?/g, '').trim();
+        
         setResumeData(prev => ({
           ...prev,
-          personalInfo: { ...prev.personalInfo, bio: res.data.data.message }
+          personalInfo: { ...prev.personalInfo, bio: aiMessage }
         }));
         toast.success('تم إنشاء الملخص بنجاح!', { id: loadingToast });
       }
     } catch (err) {
+      console.error(err);
       toast.error('فشل في إنشاء الملخص آلياً', { id: loadingToast });
     } finally {
       setLoading(false);
@@ -253,10 +269,57 @@ const ResumeBuilder = () => {
   const handlePrint = async () => {
     // حفظ التغييرات أولاً لضمان أن الـ PDF يحتوي على أحدث البيانات
     await handleSave();
-    toast.success('جاري تجهيز ملف PDF للطباعة...');
-    setTimeout(() => {
-      window.print();
-    }, 1000);
+    const loadingToast = toast.loading('جاري تجهيز ملف PDF احترافي عبر الخادم...');
+    
+    try {
+      const element = document.querySelector('.resume-paper');
+      if (!element) {
+        toast.error('تعذر العثور على السيرة الذاتية للتصدير', { id: loadingToast });
+        return;
+      }
+
+      // محاولة التصدير عبر الخادم (Puppeteer) لضمان أعلى جودة وتوافق
+      const response = await axios.post('/api/users/resume/export-pdf', 
+        { htmlContent: element.innerHTML },
+        { responseType: 'blob' }
+      );
+
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `resume_${user?.name?.replace(/\s+/g, '_') || 'jobify'}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast.success('تم تصدير السيرة الذاتية بنجاح عبر الخادم!', { id: loadingToast });
+    } catch (err) {
+      console.warn('Server-side PDF export failed, falling back to client-side:', err);
+      toast.loading('تنبيه: فشل التصدير عبر الخادم، جاري المحاولة عبر المتصفح...', { id: loadingToast });
+
+      // Fallback to html2pdf (client-side)
+      try {
+        const html2pdfModule = await import('html2pdf.js');
+        const html2pdf = html2pdfModule.default || html2pdfModule;
+        const element = document.querySelector('.resume-paper');
+        
+        const opt = {
+          margin:       [0.5, 0.5],
+          filename:     `resume_${user?.name?.replace(/\s+/g, '_') || 'jobify'}_fallback.pdf`,
+          image:        { type: 'jpeg', quality: 0.98 },
+          html2canvas:  { scale: 2, useCORS: true, logging: false },
+          jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+        
+        await html2pdf().set(opt).from(element).save();
+        toast.success('تم التصدير بنجاح (نسخة احتياطية)!', { id: loadingToast });
+      } catch (clientErr) {
+        console.error('Client-side PDF fallback also failed:', clientErr);
+        toast.error('عذراً، فشلت جميع طرق التصدير. يرجى المحاولة لاحقاً', { id: loadingToast });
+      }
+    }
   };
 
   const steps = [

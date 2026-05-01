@@ -118,7 +118,16 @@ const VerifyOTP = () => {
     if (result.success) {
       setVerified(true);
       toast.success('تم التحقق بنجاح! مرحباً بك 🎉', { duration: 3000 });
-      setTimeout(() => navigate('/'), 1500);
+      let redirectPath = '/';
+      const userRole = result.user?.role;
+      if (userRole === 'jobseeker') {
+        redirectPath = '/dashboard';
+      } else if (userRole === 'employer' || userRole === 'company') {
+        redirectPath = '/employer/dashboard';
+      } else if (userRole === 'admin') {
+        redirectPath = '/admin/dashboard';
+      }
+      setTimeout(() => navigate(redirectPath), 1500);
     } else {
       toast.error(result.message || 'كود التحقق غير صحيح');
       // مسح الأرقام والبدء من جديد

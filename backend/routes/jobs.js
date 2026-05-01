@@ -499,4 +499,26 @@ router.get('/:id/stats', protect, async (req, res) => {
   }
 });
 
+// @desc    تتبع مشاركة الوظيفة
+// @route   POST /api/jobs/:id/track-share
+// @access  Public
+router.post('/:id/track-share', async (req, res) => {
+  try {
+    const job = await Job.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { shares: 1 } },
+      { new: true }
+    );
+    
+    if (!job) {
+      return res.status(404).json({ success: false, message: 'الوظيفة غير موجودة' });
+    }
+
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('Error tracking share:', error);
+    res.status(500).json({ success: false, message: 'حدث خطأ أثناء تتبع المشاركة' });
+  }
+});
+
 module.exports = router;

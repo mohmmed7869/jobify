@@ -11,6 +11,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Helmet } from 'react-helmet-async';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { getFileUrl } from '../../utils/fileUrl';
 
@@ -58,6 +59,12 @@ const JobDetails = () => {
     };
 
     fetchJob();
+
+    // Track share clicks
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('ref') === 'share') {
+      axios.post(`/api/jobs/${id}/track-share`).catch(e => console.error('Share tracking failed:', e));
+    }
   }, [id, user]);
 
   const handleApply = async (e) => {
@@ -88,6 +95,27 @@ const JobDetails = () => {
   const nextStep = () => setApplyStep(prev => prev + 1);
   const prevStep = () => setApplyStep(prev => prev - 1);
 
+  const handleShare = async () => {
+    const shareUrl = `${window.location.origin}/jobs/${id}?ref=share`;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success('تم نسخ رابط الوظيفة بنجاح!');
+    } catch (err) {
+      // Fallback for older browsers
+      const textArea = document.createElement("textarea");
+      textArea.value = shareUrl;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        toast.success('تم نسخ رابط الوظيفة بنجاح!');
+      } catch (e) {
+        toast.error('تعذر نسخ الرابط. يرجى نسخه يدوياً من شريط العنوان.');
+      }
+      document.body.removeChild(textArea);
+    }
+  };
+
   if (loading) return (
     <div className="min-h-screen mesh-bg flex flex-col items-center justify-center">
       <div className="relative">
@@ -115,6 +143,14 @@ const JobDetails = () => {
 
   return (
     <div className="min-h-screen mesh-bg pb-20 relative" dir="rtl">
+      <Helmet>
+        <title>{job.title} | Jobify</title>
+        <meta name="description" content={`مطلوب ${job.title} في ${job.companyName}. انضم إلينا اليوم!`} />
+        <meta property="og:title" content={`${job.title} | Jobify`} />
+        <meta property="og:description" content={`مطلوب ${job.title} في ${job.companyName}. انضم إلينا اليوم!`} />
+        {job.companyLogo && <meta property="og:image" content={getFileUrl(job.companyLogo)} />}
+        <meta property="og:type" content="website" />
+      </Helmet>
       {/* Dynamic Header Section */}
       <div className="relative pt-6 md:pt-10 pb-20 md:pb-32 overflow-hidden px-4 md:px-0">
         <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-b from-white/60 to-transparent z-0"></div>
@@ -220,7 +256,7 @@ const JobDetails = () => {
                   </Link>
                 )}
 
-                <button className="flex-1 sm:flex-none p-3.5 md:p-5 rounded-xl md:rounded-[1.5rem] bg-white border-2 themed-border text-slate-400 hover:text-primary-600 hover:border-primary-100 transition-all shadow-sm flex items-center justify-center">
+                <button onClick={handleShare} className="flex-1 sm:flex-none p-3.5 md:p-5 rounded-xl md:rounded-[1.5rem] bg-white border-2 themed-border text-slate-400 hover:text-primary-600 hover:border-primary-100 transition-all shadow-sm flex items-center justify-center">
                   <FiShare2 size={18} className="md:w-5 md:h-5" />
                 </button>
               </div>

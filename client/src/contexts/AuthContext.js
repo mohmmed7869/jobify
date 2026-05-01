@@ -53,9 +53,22 @@ export const AuthProvider = ({ children }) => {
 
     const responseInterceptor = axios.interceptors.response.use(
       (response) => response,
-      (error) => {
-        if (error.response?.status === 401) {
-          dispatch({ type: 'LOGOUT' });
+      async (error) => {
+        const originalRequest = error.config;
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true;
+          try {
+            const res = await axios.post('/api/auth/refresh');
+            if (res.data.success) {
+              const newToken = res.data.token;
+              dispatch({ type: 'SET_TOKEN', payload: newToken });
+              originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
+              return axios(originalRequest);
+            }
+          } catch (refreshError) {
+            console.error('Refresh token failed:', refreshError);
+            dispatch({ type: 'LOGOUT' });
+          }
         }
         return Promise.reject(error);
       }
@@ -142,7 +155,7 @@ export const AuthProvider = ({ children }) => {
       dispatch({ type: 'SET_TOKEN', payload: response.data.token });
       dispatch({ type: 'SET_USER', payload: response.data.data });
       
-      return { success: true };
+      return { success: true, user: response.data.data };
     } catch (error) {
       dispatch({ type: 'SET_LOADING', payload: false });
       const message = error.response?.data?.message || 'رمز التحقق غير صحيح';

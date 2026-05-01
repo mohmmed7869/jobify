@@ -159,6 +159,7 @@ const userSchema = new mongoose.Schema({
   verificationToken: String,
   resetPasswordToken: String,
   resetPasswordExpire: Date,
+  refreshToken: String,
   lastLogin: Date,
   // ميزات التواصل الاجتماعي والتوثيق الخارجي
   socialAuth: {

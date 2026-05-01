@@ -915,4 +915,66 @@ router.delete('/:id', protect, async (req, res) => {
   }
 });
 
+// @desc    تصدير السيرة الذاتية بصيغة PDF (Server-side)
+// @route   POST /api/users/resume/export-pdf
+// @access  Private (Job Seekers only)
+router.post('/resume/export-pdf', protect, authorize('jobseeker', 'individual'), async (req, res) => {
+  try {
+    const { htmlContent } = req.body;
+    
+    if (!htmlContent) {
+      return res.status(400).json({ success: false, message: 'المحتوى مطلوب' });
+    }
+
+    let puppeteer;
+    try {
+      puppeteer = require('puppeteer');
+    } catch (e) {
+      return res.status(501).json({ success: false, message: 'خدمة التصدير غير مفعلة حالياً على الخادم.' });
+    }
+
+    const browser = await puppeteer.launch({
+      headless: 'new',
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+    
+    const page = await browser.newPage();
+    const fullHtml = `
+      <!DOCTYPE html>
+      <html dir="rtl" lang="ar">
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: sans-serif; background: #fff; color: #333; margin: 0; padding: 0; }
+          .no-print { display: none !important; }
+        </style>
+      </head>
+      <body>
+        ${htmlContent}
+      </body>
+      </html>
+    `;
+    
+    await page.setContent(fullHtml, { waitUntil: 'networkidle0' });
+    
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: '0.5in', right: '0.5in', bottom: '0.5in', left: '0.5in' }
+    });
+    
+    await browser.close();
+    
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Length': pdfBuffer.length
+    });
+    
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error('PDF Export Error:', error);
+    res.status(500).json({ success: false, message: 'حدث خطأ أثناء إنشاء ملف PDF' });
+  }
+});
+
 module.exports = router;

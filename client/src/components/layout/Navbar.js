@@ -8,7 +8,7 @@ import NotificationDropdown from './NotificationDropdown';
 import { 
   FiMenu, FiX, FiUser, FiLogOut, 
   FiMessageCircle, FiCpu, FiGrid, FiSearch, FiBriefcase,
-  FiGlobe, FiLayers, FiVideo, FiTarget, FiUsers
+  FiGlobe, FiLayers, FiVideo, FiTarget
 } from 'react-icons/fi';
 
 const Navbar = () => {
@@ -80,7 +80,6 @@ const Navbar = () => {
             <div className="flex items-center gap-2">
               <NavLink to="/feed" active={isActive('/feed')} label={t('navbar.feed')} />
               <NavLink to="/jobs" active={isActive('/jobs')} label={t('navbar.jobs')} />
-              <NavLink to="/social" active={isActive('/social')} label="المجتمع" />
               {user && <NavLink to={getDashboardLink()} active={location.pathname.includes('dashboard')} label={t('navbar.dashboard')} />}
             </div>
 
@@ -276,7 +275,6 @@ const Navbar = () => {
             <div className="space-y-2">
               <MobileNavLink to="/feed" label={t('navbar.feed')} icon={<FiGrid />} onClick={() => setIsMenuOpen(false)} />
               <MobileNavLink to="/jobs" label={t('navbar.jobs')} icon={<FiSearch />} onClick={() => setIsMenuOpen(false)} />
-              <MobileNavLink to="/social" label="المجتمع" icon={<FiUsers />} onClick={() => setIsMenuOpen(false)} />
               
               {user ? (
                 <>

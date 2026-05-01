@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { FiBell, FiCheck, FiTrash2, FiClock } from 'react-icons/fi';
 import { formatRelativeTime } from '../../utils/dateUtils';
@@ -9,6 +9,7 @@ const NotificationDropdown = ({ socket }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchNotifications();
@@ -39,14 +40,32 @@ const NotificationDropdown = ({ socket }) => {
   };
 
   const markAsRead = async (id) => {
+    // Optimistic UI update
+    setNotifications(prev => prev.map(n => 
+      n._id === id ? { ...n, read: true } : n
+    ));
+    setUnreadCount(prev => Math.max(0, prev - 1));
+
     try {
       await axios.put(`/api/notifications/${id}/read`);
-      setNotifications(notifications.map(n => 
-        n._id === id ? { ...n, read: true } : n
-      ));
-      setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (error) {
       console.error('Error marking notification as read:', error);
+      // Revert on failure
+      setNotifications(prev => prev.map(n => 
+        n._id === id ? { ...n, read: false } : n
+      ));
+      setUnreadCount(prev => prev + 1);
+    }
+  };
+
+  const handleNotificationClick = (notification) => {
+    if (!notification.read) {
+      markAsRead(notification._id); // Don't await, do it optimistically
+    }
+    const path = notification.route || notification.link;
+    if (path) {
+      setIsOpen(false);
+      navigate(path);
     }
   };
 
@@ -118,7 +137,7 @@ const NotificationDropdown = ({ socket }) => {
                 notifications.map((notification) => (
                   <div 
                     key={notification._id}
-                    onClick={() => !notification.read && markAsRead(notification._id)}
+                    onClick={() => handleNotificationClick(notification)}
                     className={`p-4 border-b themed-border transition-all cursor-pointer group hover:bg-primary-500/5 ${!notification.read ? 'bg-primary-500/10 border-r-4 border-r-primary-500' : ''}`}
                   >
                     <div className="flex justify-between items-start gap-3">
